@@ -1,0 +1,4 @@
+modelo,n,mape,mape_mediana,mejora_pct
+CNN sola,670,15.272229207825086,,
+C' geometría sola,670,19.089167937012768,,
+fusión CNN+C',670,15.542843296855335,,

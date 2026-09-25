@@ -1,0 +1,21 @@
+modelo,banda_kg,n,mape
+Mediana (baseline),0-100,52,86.8577566921934
+Mediana (baseline),100-200,525,16.067569711967064
+Mediana (baseline),200-300,86,28.242147162762077
+Mediana (baseline),300-+,7,51.14825364246557
+"A: visual (CNN, sin geometría)",0-100,52,58.625529702251725
+"A: visual (CNN, sin geometría)",100-200,525,15.098452705598994
+"A: visual (CNN, sin geometría)",200-300,86,21.66151535933965
+"A: visual (CNN, sin geometría)",300-+,7,39.45651298866539
+"B: keypoints, sin escala",0-100,52,55.54297338495451
+"B: keypoints, sin escala",100-200,525,14.548706040478951
+"B: keypoints, sin escala",200-300,86,22.81609978914699
+"B: keypoints, sin escala",300-+,7,49.078983199341394
+C: keypoints + sticker + forma,0-100,52,42.58636293504372
+C: keypoints + sticker + forma,100-200,525,13.514878064596136
+C: keypoints + sticker + forma,200-300,86,18.084131406809032
+C: keypoints + sticker + forma,300-+,7,24.286514255371777
+Fusión A+C,0-100,52,41.71406196231207
+Fusión A+C,100-200,525,12.846047154127053
+Fusión A+C,200-300,86,16.9553735390833
+Fusión A+C,300-+,7,22.96732622223762

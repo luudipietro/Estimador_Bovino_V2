@@ -1,0 +1,29 @@
+modelo,banda_kg,n,mape
+Mediana (no mira la foto),0-100,52,86.8577566921934
+Mediana (no mira la foto),100-200,525,16.067569711967064
+Mediana (no mira la foto),200-300,86,28.242147162762077
+Mediana (no mira la foto),300-+,7,51.14825364246557
+B: ratios de keypoints,0-100,52,55.54297338495453
+B: ratios de keypoints,100-200,525,14.548706040478951
+B: ratios de keypoints,200-300,86,22.81609978914699
+B: ratios de keypoints,300-+,7,49.078983199341394
+C': ratios + forma + sexo,0-100,52,54.56021773112758
+C': ratios + forma + sexo,100-200,525,14.613764111620359
+C': ratios + forma + sexo,200-300,86,22.509745640709944
+C': ratios + forma + sexo,300-+,7,49.22098743973923
+A: CNN congelada (punto de partida),0-100,52,58.625529702251725
+A: CNN congelada (punto de partida),100-200,525,15.098452705598994
+A: CNN congelada (punto de partida),200-300,86,21.661515359339656
+A: CNN congelada (punto de partida),300-+,7,39.456512988665395
+CNN fine-tuneada (mejor),0-100,52,31.885900491305346
+CNN fine-tuneada (mejor),100-200,525,13.051220914906633
+CNN fine-tuneada (mejor),200-300,86,19.218778621730838
+CNN fine-tuneada (mejor),300-+,7,31.442932792678096
+CNN ensemble (3 mejores),0-100,52,34.13728636233625
+CNN ensemble (3 mejores),100-200,525,12.514730304010376
+CNN ensemble (3 mejores),200-300,86,17.906651807471437
+CNN ensemble (3 mejores),300-+,7,30.52992319679303
+(control) CNN CON sticker,0-100,52,33.04262780918113
+(control) CNN CON sticker,100-200,525,12.256997186558037
+(control) CNN CON sticker,200-300,86,20.36085181730154
+(control) CNN CON sticker,300-+,7,39.37953136465755

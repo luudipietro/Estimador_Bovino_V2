@@ -1,0 +1,33 @@
+# Configuracion del dataset de keypoints para YOLO-pose.
+#
+# OJO: ultralytics resuelve 'path' contra el directorio DESDE DONDE SE EJECUTA
+# el script (cwd), NO contra la ubicacion de este archivo yaml. Por eso 'path'
+# es relativo a modelo-peso/ (no a src/), y entrenar_pose.py hace chdir a esa
+# carpeta antes de entrenar para que esto funcione sin importar desde donde lo
+# invoque cada persona del equipo.
+#
+# Poner el export de CVAT/Roboflow en modelo-peso/data/pose/ con esta estructura:
+# images/train, images/val, labels/train, labels/val.
+
+path: data/pose
+train: images/train
+val: images/val
+
+kpt_shape: [7, 3]   # 7 puntos, formato (x, y, visible)
+
+# Mapeo al voltear horizontalmente. Los 7 landmarks son del plano sagital
+# (no hay pares izquierda/derecha), asi que cada punto se mapea a si mismo:
+# una vaca espejada sigue teniendo la cruz como cruz.
+flip_idx: [0, 1, 2, 3, 4, 5, 6]
+
+names:
+  0: bovino
+
+# Orden de los keypoints (debe coincidir con etiquetado/README.md):
+#   0 cruz
+#   1 pecho_sup
+#   2 pecho_inf
+#   3 encuentro
+#   4 lumbar
+#   5 isquion
+#   6 pezuna

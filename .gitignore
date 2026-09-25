@@ -1,0 +1,67 @@
+# ==========================================================================
+#  Datasets: pesan GB y se descargan aparte (ver instrucciones en cada README)
+# ==========================================================================
+www.acmeai.tech Dataset - BMGF-LivestockWeight-CV/
+www.acmeai.tech BMGF - LivestockWeight - CV.pdf
+datasets_externos/
+modelo-peso/data/
+modelo-peso/etiquetado/
+bovinovision/data/
+
+# ==========================================================================
+#  Modelos entrenados
+#  Cada .pt de la CNN pesa ~107 MB y GitHub rechaza archivos de más de 100 MB.
+#  Los del módulo `estimador/` se distribuyen aparte (Release de GitHub, Drive
+#  o Git LFS); el resto se regenera reentrenando.
+# ==========================================================================
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# ==========================================================================
+#  Salidas de experimentos
+#  Se ignora el contenido pesado de runs/ (imágenes de control, overlays,
+#  checkpoints) pero SE CONSERVAN los CSV y JSON: son la evidencia de los
+#  resultados, pesan kilobytes y sirven para el informe.
+# ==========================================================================
+bovinovision/runs/**
+!bovinovision/runs/**/
+!bovinovision/runs/**/*.csv
+!bovinovision/runs/**/*.json
+!bovinovision/runs/**/*.yaml
+modelo-peso/runs/
+
+# ==========================================================================
+#  Entornos de Python y cachés
+#  (uv.lock SÍ se versiona: garantiza que todos instalen lo mismo)
+# ==========================================================================
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Cachés de modelos preentrenados que se bajan solos
+.cache/
+**/hf_cache/
+
+# ==========================================================================
+#  Archivos temporales y de sistema
+# ==========================================================================
+*.log
+*.tmp
+*.bak
+~$*
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,101 @@
+{
+  "config": {
+    "backbone": "convnext_tiny",
+    "encuadre": "completa",
+    "tam": 384,
+    "epocas": 25,
+    "batch": 16,
+    "lr": 0.0003,
+    "lr_backbone": 3e-05,
+    "wd": 0.02,
+    "loss": "l1",
+    "sin_aug_escala": false,
+    "congelar": false,
+    "imagenes": "sin_sticker",
+    "workers": 4,
+    "paciencia": 8,
+    "nombre": null,
+    "limite_train": 0,
+    "limite_val": 0
+  },
+  "historial": [
+    {
+      "epoca": 0,
+      "perdida": 0.43389235129907505,
+      "mape_val": 17.13810942981346,
+      "seg": 117.5
+    },
+    {
+      "epoca": 1,
+      "perdida": 0.1941260380960589,
+      "mape_val": 16.09024107231517,
+      "seg": 78.6
+    },
+    {
+      "epoca": 2,
+      "perdida": 0.20885993412990667,
+      "mape_val": 21.329605082175988,
+      "seg": 78.8
+    },
+    {
+      "epoca": 3,
+      "perdida": 0.17855817274232605,
+      "mape_val": 15.521959568859053,
+      "seg": 78.3
+    },
+    {
+      "epoca": 4,
+      "perdida": 0.18275298410324595,
+      "mape_val": 15.102452176175948,
+      "seg": 78.8
+    },
+    {
+      "epoca": 5,
+      "perdida": 0.17541338690561264,
+      "mape_val": 15.77536773069172,
+      "seg": 77.9
+    },
+    {
+      "epoca": 6,
+      "perdida": 0.16722711141984067,
+      "mape_val": 24.319942695936728,
+      "seg": 78.3
+    },
+    {
+      "epoca": 7,
+      "perdida": 0.16615170270354304,
+      "mape_val": 19.561777184284377,
+      "seg": 78.2
+    },
+    {
+      "epoca": 8,
+      "perdida": 0.15555558177694004,
+      "mape_val": 15.193720863872375,
+      "seg": 79.2
+    },
+    {
+      "epoca": 9,
+      "perdida": 0.1452812119644491,
+      "mape_val": 15.728694575132987,
+      "seg": 78.3
+    },
+    {
+      "epoca": 10,
+      "perdida": 0.13660178861426348,
+      "mape_val": 16.405163718799177,
+      "seg": 78.3
+    },
+    {
+      "epoca": 11,
+      "perdida": 0.13663848590611213,
+      "mape_val": 15.561110053271435,
+      "seg": 78.3
+    },
+    {
+      "epoca": 12,
+      "perdida": 0.1272573000821636,
+      "mape_val": 15.912263494564401,
+      "seg": 78.1
+    }
+  ]
+}

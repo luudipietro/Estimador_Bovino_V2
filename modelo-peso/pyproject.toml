@@ -1,0 +1,27 @@
+[project]
+name = "modelo-peso"
+version = "0.1.0"
+description = "Módulo 2 — estimación de peso bovino a partir de landmarks anatómicos"
+requires-python = ">=3.13,<3.15"
+dependencies = [
+    "ultralytics==8.4.144",
+    "opencv-python==5.0.0.93",
+    "scikit-learn==1.9.0",
+    "pandas==3.0.5",
+    "numpy==2.3.4",
+    "openpyxl==3.1.5",
+    "torch==2.14.0",
+    "transformers==5.17.0",
+    "timm==1.0.29",
+]
+
+[tool.uv]
+environments = ["sys_platform == 'win32'"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

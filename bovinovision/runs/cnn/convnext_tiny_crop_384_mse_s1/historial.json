@@ -1,0 +1,140 @@
+{
+  "config": {
+    "backbone": "convnext_tiny",
+    "encuadre": "crop",
+    "tam": 384,
+    "epocas": 25,
+    "batch": 16,
+    "lr": 0.0003,
+    "lr_backbone": 3e-05,
+    "wd": 0.02,
+    "loss": "mse",
+    "sin_aug_escala": false,
+    "congelar": false,
+    "imagenes": "sin_sticker",
+    "unificado": false,
+    "balancear": false,
+    "semilla": 1,
+    "workers": 4,
+    "paciencia": 8,
+    "nombre": null,
+    "limite_train": 0,
+    "limite_val": 0
+  },
+  "historial": [
+    {
+      "epoca": 0,
+      "perdida": 1.6582749642094774,
+      "mape_val": 26.539628333264403,
+      "seg": 96.8
+    },
+    {
+      "epoca": 1,
+      "perdida": 0.05372243098465342,
+      "mape_val": 18.40158128685241,
+      "seg": 76.2
+    },
+    {
+      "epoca": 2,
+      "perdida": 0.04978069158074395,
+      "mape_val": 15.985407920034628,
+      "seg": 76.2
+    },
+    {
+      "epoca": 3,
+      "perdida": 0.06079014276982701,
+      "mape_val": 19.64328361255418,
+      "seg": 76.2
+    },
+    {
+      "epoca": 4,
+      "perdida": 0.0411053897962723,
+      "mape_val": 16.03179866125749,
+      "seg": 76.3
+    },
+    {
+      "epoca": 5,
+      "perdida": 0.05292443423321349,
+      "mape_val": 20.916850366997018,
+      "seg": 76.4
+    },
+    {
+      "epoca": 6,
+      "perdida": 0.03742803470816594,
+      "mape_val": 15.506771246022069,
+      "seg": 76.3
+    },
+    {
+      "epoca": 7,
+      "perdida": 0.03931114693925758,
+      "mape_val": 19.303819160497348,
+      "seg": 76.4
+    },
+    {
+      "epoca": 8,
+      "perdida": 0.02675920307645621,
+      "mape_val": 16.877678622762296,
+      "seg": 76.3
+    },
+    {
+      "epoca": 9,
+      "perdida": 0.02493593116623148,
+      "mape_val": 18.038532783428753,
+      "seg": 76.3
+    },
+    {
+      "epoca": 10,
+      "perdida": 0.020267344707033442,
+      "mape_val": 14.539727112760772,
+      "seg": 76.4
+    },
+    {
+      "epoca": 11,
+      "perdida": 0.015574074226277108,
+      "mape_val": 15.025236889078798,
+      "seg": 76.4
+    },
+    {
+      "epoca": 12,
+      "perdida": 0.012207478497776404,
+      "mape_val": 14.96022603812327,
+      "seg": 76.3
+    },
+    {
+      "epoca": 13,
+      "perdida": 0.008913454846549198,
+      "mape_val": 17.146931271088114,
+      "seg": 76.4
+    },
+    {
+      "epoca": 14,
+      "perdida": 0.008021016107947008,
+      "mape_val": 15.031199357088438,
+      "seg": 76.4
+    },
+    {
+      "epoca": 15,
+      "perdida": 0.006075165116920805,
+      "mape_val": 15.196631673076283,
+      "seg": 76.4
+    },
+    {
+      "epoca": 16,
+      "perdida": 0.0046419246782122845,
+      "mape_val": 14.727658674148577,
+      "seg": 76.5
+    },
+    {
+      "epoca": 17,
+      "perdida": 0.003943764738885957,
+      "mape_val": 14.649797732957873,
+      "seg": 76.4
+    },
+    {
+      "epoca": 18,
+      "perdida": 0.011236986822809032,
+      "mape_val": 14.57767472211221,
+      "seg": 76.3
+    }
+  ]
+}

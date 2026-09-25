@@ -1,0 +1,28 @@
+[project]
+name = "estimador-peso-bovino"
+version = "0.1.0"
+description = "Estima el peso de un bovino a partir de una foto lateral"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy",
+    "pillow",
+    "torch==2.14.0",
+    "torchvision==0.29.0",
+    "ultralytics==8.4.144",
+    "timm==1.0.29",
+    "uvicorn>=0.54.0",
+    "fastapi>=0.141.1",
+    "python-multipart>=0.0.32",
+]
+
+[project.optional-dependencies]
+api = ["fastapi", "uvicorn[standard]", "python-multipart"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

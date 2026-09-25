@@ -1,0 +1,52 @@
+[project]
+name = "bovinovision"
+version = "0.1.0"
+description = "Estimación de peso bovino con un celular: keypoints + profundidad monocular + regresión"
+requires-python = ">=3.13,<3.15"
+dependencies = [
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "scikit-learn",
+    "pillow",
+    "opencv-python",
+    "matplotlib",
+    "openpyxl",
+    "pytest",
+]
+
+# Elegir UNO:  uv sync --extra cpu   (Windows / sin GPU)   |   uv sync --extra rocm   (Fedora, AMD)
+# OJO: correr siempre "uv run --extra cpu|rocm ...". Un "uv run" pelado resincroniza el venv sin extras
+# y borra torch (pasa sobre todo después de tocar este archivo o de cambiar de sistema operativo).
+[project.optional-dependencies]
+cpu = ["torch==2.14.0", "torchvision==0.29.0", "ultralytics==8.4.144", "transformers==5.17.0", "timm==1.0.29"]
+rocm = ["torch==2.14.0", "torchvision==0.29.0", "triton-rocm; sys_platform == 'linux'", "ultralytics==8.4.144", "transformers==5.17.0", "timm==1.0.29"]
+
+[tool.uv]
+environments = ["sys_platform == 'win32'", "sys_platform == 'linux'"]
+conflicts = [[{ extra = "cpu" }, { extra = "rocm" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-rocm", extra = "rocm", marker = "sys_platform == 'linux'" },
+]
+triton-rocm = { index = "pytorch-rocm", extra = "rocm", marker = "sys_platform == 'linux'" }
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-rocm", extra = "rocm", marker = "sys_platform == 'linux'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-rocm"
+url = "https://download.pytorch.org/whl/rocm7.2"
+explicit = true
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
