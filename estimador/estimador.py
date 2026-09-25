@@ -5,9 +5,15 @@
     print(est.estimar("vaca.jpg"))
     # {'peso_kg': 187.4, 'confiable': True, 'motivo': None, 'confianza_deteccion': 0.94, ...}
 
-Cómo funciona (dos modelos en cadena, ninguno necesita marcador ni sensores):
-  1. YOLO-pose ubica 9 puntos anatómicos y con ellos se recorta al animal con un margen fijo.
-  2. Una CNN (ConvNeXt-Tiny) mira ese recorte a 384x384 y predice el peso.
+Cómo funciona (tres modelos en cadena, ninguno necesita marcador ni sensores):
+  1. Un detector genérico ubica a los bovinos de la escena y se elige el más grande (el de primer plano).
+  2. YOLO-pose ubica 9 puntos anatómicos sobre ese animal y se recorta con un margen fijo.
+  3. Una CNN (ConvNeXt-Tiny) mira ese recorte a 384x384 y predice el peso.
+
+El paso 1 se agregó después de probar con fotos reales de campo argentino: nuestro modelo de pose fue entrenado
+con imágenes donde el animal ocupa más de la mitad del cuadro, y en fotos de corral (animal lejos, postes
+delante, otros animales de fondo) lo detectaba con confianza 0,05 o directamente no lo encontraba. Con el
+detector genérico adelante, la confianza en esas mismas fotos sube a 0,89.
 
 ESTADO DEL MODELO (importante): está entrenado con 4.540 fotos de bovinos de Bangladesh, de 36 a 621 kg, con el
 78% entre 100 y 200 kg. Medimos que **no extrapola**: nunca predice por encima de ~270 kg. Sobre animales
@@ -36,6 +42,7 @@ DESVIO = [0.229, 0.224, 0.225]
 # Umbrales de la regla "no sé"
 CONF_DETECCION_MIN = 0.35
 CONF_KEYPOINT_MIN = 0.50
+CLASE_VACA_COCO = 19  # índice de 'cow' en el conjunto de clases de COCO
 # Rango en el que el modelo fue entrenado; fuera de acá la predicción no es confiable
 RANGO_ENTRENAMIENTO = (36.0, 621.0)
 
@@ -51,6 +58,8 @@ class EstimadorPeso:
 
         from ultralytics import YOLO
         self.pose = YOLO(str(carpeta / cfg["archivo_pose"]))
+        # detector genérico (clase 'cow' de COCO): encuentra al animal aunque esté lejos o haya varios
+        self.detector = YOLO(str(carpeta / cfg["archivo_detector"])) if cfg.get("archivo_detector") else None
 
         import timm
         self.cnn = timm.create_model(cfg["backbone"], pretrained=False, num_classes=1)
@@ -72,6 +81,23 @@ class EstimadorPeso:
             return Image.open(io.BytesIO(imagen)).convert("RGB")
         return Image.open(imagen).convert("RGB")
 
+    def _aislar_animal(self, im: Image.Image):
+        """Recorta al bovino más grande de la escena (el de primer plano). Devuelve (imagen, desplazamiento, n_vacas).
+        Si el detector no encuentra nada, devuelve la imagen entera y deja que el pose se arregle solo."""
+        if self.detector is None:
+            return im, (0, 0), None
+        res = self.detector.predict(source=im, classes=[CLASE_VACA_COCO], conf=0.25, max_det=30, verbose=False)[0]
+        if len(res.boxes) == 0:
+            return im, (0, 0), 0
+        cajas = res.boxes.xyxy.cpu().numpy()
+        areas = (cajas[:, 2] - cajas[:, 0]) * (cajas[:, 3] - cajas[:, 1])
+        x0, y0, x1, y1 = cajas[int(areas.argmax())]
+        # margen amplio: el pose necesita ver al animal completo, incluidas patas y cola
+        mx, my = 0.15 * (x1 - x0), 0.15 * (y1 - y0)
+        caja = (max(0, int(x0 - mx)), max(0, int(y0 - my)),
+                min(im.width, int(x1 + mx)), min(im.height, int(y1 + my)))
+        return im.crop(caja), (caja[0], caja[1]), len(cajas)
+
     def _recortar(self, im: Image.Image, xs, ys):
         mx, my = MARGEN_X * (xs.max() - xs.min()), MARGEN_Y * (ys.max() - ys.min())
         caja = (max(0, int(xs.min() - mx)), max(0, int(ys.min() - my)),
@@ -90,10 +116,12 @@ class EstimadorPeso:
         if f < 1:
             im = im.resize((round(im.width * f), round(im.height * f)), Image.LANCZOS)
 
-        res = self.pose.predict(source=im, imgsz=640, conf=0.05, max_det=3, verbose=False)[0]
+        escena, (dx, dy), n_vacas = self._aislar_animal(im)
+
+        res = self.pose.predict(source=escena, imgsz=640, conf=0.05, max_det=3, verbose=False)[0]
         if len(res.boxes) == 0:
             return {"peso_kg": None, "confiable": False, "motivo": "no se detectó ningún bovino en la foto",
-                    "resolucion": f"{ancho0}x{alto0}"}
+                    "bovinos_en_la_escena": n_vacas, "resolucion": f"{ancho0}x{alto0}"}
 
         k = int(res.boxes.conf.argmax())
         conf_det = float(res.boxes.conf[k])
@@ -101,7 +129,7 @@ class EstimadorPeso:
         conf_kp = res.keypoints.conf[k].cpu().numpy()
         xs, ys = xy[:, 0], xy[:, 1]
 
-        recorte, caja = self._recortar(im, xs, ys)
+        recorte, caja = self._recortar(escena, xs, ys)
         x = self.tfm(self._v2.functional.pil_to_tensor(recorte)).unsqueeze(0).to(self.dispositivo)
         with torch.no_grad():
             log_peso = self.cnn(x).squeeze().item()
@@ -116,8 +144,11 @@ class EstimadorPeso:
         if float(conf_kp.min()) < CONF_KEYPOINT_MIN:
             motivos.append("hay partes del cuerpo tapadas o fuera de cuadro")
         if caja is not None:
+            # se mide contra la foto original: tras aislar al animal, tocar el borde del recorte es normal
             margen = 0.01 * max(im.size)
-            if caja[0] <= margen or caja[1] <= margen or caja[2] >= im.width - margen or caja[3] >= im.height - margen:
+            abs_caja = (caja[0] + dx, caja[1] + dy, caja[2] + dx, caja[3] + dy)
+            if (abs_caja[0] <= margen or abs_caja[1] <= margen
+                    or abs_caja[2] >= im.width - margen or abs_caja[3] >= im.height - margen):
                 motivos.append("el animal aparece cortado por el borde de la foto")
         if not (RANGO_ENTRENAMIENTO[0] <= peso <= RANGO_ENTRENAMIENTO[1]):
             motivos.append("el peso estimado cae fuera del rango con el que se entrenó el modelo")
@@ -128,9 +159,10 @@ class EstimadorPeso:
             "motivo": "; ".join(motivos) if motivos else None,
             "confianza_deteccion": round(conf_det, 3),
             "confianza_keypoint_minima": round(float(conf_kp.min()), 3),
-            "keypoints": {n: [round(float(a), 1), round(float(b), 1), round(float(c), 3)]
+            "bovinos_en_la_escena": n_vacas,
+            "keypoints": {n: [round(float(a) + dx, 1), round(float(b) + dy, 1), round(float(c), 3)]
                           for n, a, b, c in zip(KEYPOINTS, xs, ys, conf_kp)},
-            "recorte": caja,
+            "recorte": [caja[0] + dx, caja[1] + dy, caja[2] + dx, caja[3] + dy] if caja else None,
             "resolucion": f"{ancho0}x{alto0}",
             "modelo": self.cfg.get("version", "sin versión"),
         }

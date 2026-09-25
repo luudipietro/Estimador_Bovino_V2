@@ -24,6 +24,7 @@ DESTINO = AQUI / "modelos"
 ARCHIVOS = {
     "pose9.pt": "bbe42ed5120f4967c4adad7454d06b856fac19ffc210250e1c766d90b61696f9",
     "peso_convnext.pt": "72011edb80750447308f250874849179a386d95d16558aef6c4f0f49f3ba3244",
+    "detector_coco.pt": "0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1",
 }
 
 

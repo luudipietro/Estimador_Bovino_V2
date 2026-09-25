@@ -11,12 +11,14 @@ estimador/
 ├── api.py            <- API HTTP para que la app le pegue
 ├── pyproject.toml    <- dependencias
 └── modelos/
+    ├── detector_coco.pt   (5 MB)  encuentra al bovino en la escena
     ├── pose9.pt          (19 MB)  YOLO-pose: ubica 9 puntos anatómicos
     ├── peso_convnext.pt (106 MB)  CNN que estima el peso
-    └── config.json                versión y rango de validez del modelo
+    ├── config.json                versión y rango de validez del modelo
+    └── SHA256SUMS.txt             para verificar las descargas
 ```
 
-Son **125 MB en total**. Corre en CPU sin problema (1 a 3 segundos por foto); con GPU es más rápido.
+Son **130 MB en total**. Corre en CPU sin problema (1 a 3 segundos por foto); con GPU es más rápido.
 
 > ### ⚠️ Los archivos de `modelos/` NO viajan en el repositorio
 > `peso_convnext.pt` pesa 106 MB y **GitHub rechaza archivos de más de 100 MB**. Están en el `.gitignore`.
@@ -73,9 +75,14 @@ Hay documentación interactiva para probar desde el navegador en `http://localho
 ## Cómo funciona
 
 1. La foto se reduce a 1024 px de lado mayor.
-2. **YOLO-pose** ubica 9 puntos anatómicos y, con ellos, se recorta al animal dejando un margen.
-3. Ese recorte va a 384×384 y una **CNN (ConvNeXt-Tiny)** predice el peso.
-4. Se promedia la predicción con la de la imagen espejada, y se aplican las reglas de "no sé".
+2. Un **detector genérico** busca todos los bovinos y se queda con el más grande (el de primer plano).
+3. **YOLO-pose** ubica 9 puntos anatómicos sobre ese animal y se recorta dejando un margen.
+4. Ese recorte va a 384×384 y una **CNN (ConvNeXt-Tiny)** predice el peso.
+5. Se promedia la predicción con la de la imagen espejada, y se aplican las reglas de "no sé".
+
+El paso 2 se agregó tras probar con fotos reales de corral argentino: sin él, el modelo de pose detectaba al
+animal con confianza 0,05 (o no lo encontraba) porque fue entrenado con imágenes donde el bovino ocupa más de
+la mitad del cuadro. Con el detector adelante, en esas mismas fotos la confianza sube a 0,87–0,91.
 
 ## Cuándo dice "no sé"
 

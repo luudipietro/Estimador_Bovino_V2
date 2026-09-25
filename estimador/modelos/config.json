@@ -4,8 +4,15 @@
   "archivo_cnn": "peso_convnext.pt",
   "backbone": "convnext_tiny",
   "tam": 384,
-  "rango_entrenamiento_kg": [36, 621],
+  "rango_entrenamiento_kg": [
+    36,
+    621
+  ],
   "mape_test": 15.6,
-  "ic95_test": [14.0, 16.3],
-  "nota": "MAPE medido sobre bovinos de Bangladesh (78% entre 100-200 kg). No extrapola: no predice por encima de ~270 kg."
+  "ic95_test": [
+    14.0,
+    16.3
+  ],
+  "nota": "MAPE medido sobre bovinos de Bangladesh (78% entre 100-200 kg). No extrapola: no predice por encima de ~270 kg. Incluye un detector genérico previo (COCO 'cow') para encontrar al animal en fotos de campo.",
+  "archivo_detector": "detector_coco.pt"
 }
