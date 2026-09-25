@@ -106,11 +106,18 @@ Para que dé pesos reales hay que reentrenarlo con el **dataset argentino** (ver
 Los `.pt` se distribuyen como adjuntos de una **release de GitHub**: admite hasta 2 GB por archivo, es gratis,
 queda atado a una versión y no consume cuota de Git LFS.
 
-```bash
-# 1. Crear el repo remoto, si todavía no existe
-gh repo create estimador_peso_bovino --private --source=. --remote=origin
+### Opción A — desde la web (no requiere instalar nada)
+1. Entrar a https://github.com/luudipietro/Estimador_Bovino_V2/releases/new
+2. En *Choose a tag* escribir **`modelos-v1`** y elegir "Create new tag on publish".
+   **El tag tiene que ser exactamente ese**, porque es el que usa `descargar_modelos.py`.
+3. Título: `Modelos entrenados v1 (AcmeAI/Bangladesh)`
+4. Arrastrar los tres archivos de `estimador/modelos/`: `pose9.pt`, `peso_convnext.pt` y `SHA256SUMS.txt`
+5. Descripción sugerida: *MAPE 15,6% (IC 95%: 14,0–16,3). Sin marcador. No extrapola por encima de ~270 kg.*
+6. **Publish release**
 
-# 2. Publicar los dos modelos como release
+### Opción B — por línea de comandos
+Requiere instalar GitHub CLI (`winget install GitHub.cli`, y después `gh auth login`):
+```bash
 gh release create modelos-v1 \
     estimador/modelos/pose9.pt \
     estimador/modelos/peso_convnext.pt \
@@ -119,9 +126,8 @@ gh release create modelos-v1 \
     --notes "MAPE 15,6% (IC 95%: 14,0-16,3). Sin marcador. No extrapola por encima de ~270 kg."
 ```
 
-Después, completar `URL_BASE` en `descargar_modelos.py` con la URL que devuelve el comando
-(`https://github.com/USUARIO/estimador_peso_bovino/releases/download/modelos-v1`) y commitear ese cambio.
-A partir de ahí, cualquiera del equipo corre `python descargar_modelos.py` y listo.
+La URL ya está configurada en `descargar_modelos.py`, así que apenas se publique la release con el tag
+`modelos-v1`, cualquiera del equipo corre `python descargar_modelos.py` y listo.
 
 **Cuando se reentrene con el dataset argentino**: crear `modelos-v2` con los archivos nuevos, actualizar los
 hashes y la `URL_BASE`, y subir la versión en `config.json`. Los modelos viejos quedan disponibles, así que

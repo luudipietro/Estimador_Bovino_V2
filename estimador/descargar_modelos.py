@@ -15,9 +15,9 @@ import sys
 import urllib.request
 from pathlib import Path
 
-# Publicar los .pt como adjuntos de una release de GitHub y poner acá esa URL.
-# Ejemplo: "https://github.com/USUARIO/estimador_peso_bovino/releases/download/modelos-v1"
-URL_BASE = "PENDIENTE: completar con la URL de la release"
+# Los .pt se publican como adjuntos de una release de GitHub (ver README.md).
+# Si se crea una release nueva (por ejemplo al reentrenar), cambiar el tag del final y los hashes de abajo.
+URL_BASE = "https://github.com/luudipietro/Estimador_Bovino_V2/releases/download/modelos-v1"
 
 AQUI = Path(__file__).parent
 DESTINO = AQUI / "modelos"
