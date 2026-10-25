@@ -1,0 +1,23 @@
+services:
+  api-estimacion:
+    build:
+      context: ..                                   # raíz del repo: reusa estimador/estimador.py y su uv.lock
+      dockerfile: API_estimacion/Dockerfile
+    image: bovinovision/api-estimacion:0.1.0
+    container_name: bovinovision-api-estimacion
+    ports:
+      - "${PUERTO:-8000}:8000"
+    volumes:
+      - ../estimador/modelos:/modelos:ro            # los .pt no van en la imagen: reentrenar = reemplazar archivos
+    environment:
+      MAX_MB: "5"
+      PESO_SATURACION_KG: "240"
+    restart: unless-stopped
+    mem_limit: 3g
+    # Sin curl en la imagen slim: se usa python. start_period cubre la carga de los 3 modelos.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/salud', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3

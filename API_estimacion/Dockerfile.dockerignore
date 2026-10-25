@@ -1,0 +1,8 @@
+# El contexto es la raíz del repo, que contiene GBs de datasets: se excluye todo salvo lo que el Dockerfile copia.
+*
+!estimador/estimador.py
+!estimador/pyproject.toml
+!estimador/uv.lock
+!API_estimacion/app/
+**/__pycache__
+**/*.pyc

@@ -7,6 +7,11 @@ datasets_externos/
 modelo-peso/data/
 modelo-peso/etiquetado/
 bovinovision/data/
+# Dataset propio (campo 8/10 y 22/10): las fotos NO se versionan; los CSV y el README SÍ (son la lectura de las balanzas)
+dataset_propio/*pesos/
+dataset_propio/*vacas/
+dataset_propio/curado/
+dataset_propio
 
 # ==========================================================================
 #  Modelos entrenados

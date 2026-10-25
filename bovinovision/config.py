@@ -14,6 +14,9 @@ ACMEAI = Path(os.environ.get(
     ROOT.parent / "www.acmeai.tech Dataset - BMGF-LivestockWeight-CV",
 ))
 
+# Dataset propio (campo, 8/10 y 22/10 de 2026): vive al lado de bovinovision/, las fotos no se versionan
+PROPIO = Path(os.environ.get("PROPIO_DIR", ROOT.parent / "dataset_propio"))
+
 SEED = 42
 SPLIT_FRACCIONES = {"train": 0.70, "val": 0.15, "test": 0.15}
 
