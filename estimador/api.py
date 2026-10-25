@@ -12,8 +12,21 @@ Respuesta:
 Documentación interactiva para probar desde el navegador: http://localhost:8000/docs
 """
 from pathlib import Path
+from importlib import import_module
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+try:
+    _fastapi = import_module("fastapi")
+except ModuleNotFoundError as e:
+    if e.name != "fastapi":
+        raise
+    raise RuntimeError(
+        "La API requiere FastAPI. Instálalo con: uv sync --extra api"
+    ) from e
+
+FastAPI = _fastapi.FastAPI
+File = _fastapi.File
+HTTPException = _fastapi.HTTPException
+UploadFile = _fastapi.UploadFile
 
 from estimador import EstimadorPeso
 
