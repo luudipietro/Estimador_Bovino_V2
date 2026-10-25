@@ -9,6 +9,7 @@ description = "BovinoVision: servicio de estimación de peso bovino (API REST)"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "estimador-peso-bovino",
+    "anyio",
     "fastapi",
     "uvicorn[standard]",
     "python-multipart",
