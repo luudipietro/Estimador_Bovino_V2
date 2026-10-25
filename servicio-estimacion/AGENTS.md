@@ -173,17 +173,17 @@ capas, ni FastAPI, ni PyTorch, ni Pillow.
 ## Documentación
 
 ### Leer según la tarea (en `docs/`)
-- [`docs/requisitos.md`](docs/requisitos.md) — RF-19 a RF-22 y RNF-01 a RNF-03, y **el estado del modelo** (no
+- [`docs/requisitos.md`](../docs/requisitos.md) — RF-19 a RF-22 y RNF-01 a RNF-03, y **el estado del modelo** (no
   extrapola; RNF-02 no pasa con el modelo actual sobre datos de otro rango). Leer antes de tocar precisión.
-- [`docs/contrato-backend.md`](docs/contrato-backend.md) — endpoints, resultados, idempotencia y callback. Leer antes
+- [`docs/contrato-backend.md`](../docs/contrato-backend.md) — endpoints, resultados, idempotencia y callback. Leer antes
   de tocar cualquier ruta o respuesta.
-- [`docs/errores.md`](docs/errores.md) — catálogo de códigos y motivos de "no sé". Leer antes de agregar o cambiar
+- [`docs/errores.md`](../docs/errores.md) — catálogo de códigos y motivos de "no sé". Leer antes de agregar o cambiar
   un error.
-- [`docs/reglas-dominio.md`](docs/reglas-dominio.md) — reglas R-01 a R-26 y la CLI del dataset. Leer antes de tocar
+- [`docs/reglas-dominio.md`](../docs/reglas-dominio.md) — reglas R-01 a R-26 y la CLI del dataset. Leer antes de tocar
   dominio o la herramienta de ingesta.
-- [`docs/testing.md`](docs/testing.md) — niveles, imágenes de prueba obligatorias, severidades, criterios y
+- [`docs/testing.md`](../docs/testing.md) — niveles, imágenes de prueba obligatorias, severidades, criterios y
   cronograma del TP8. Leer antes de escribir tests.
-- [`docs/arquitectura.md`](docs/arquitectura.md) — capas, modelo de dominio y ejemplos de código por capa. Leer
+- [`docs/arquitectura.md`](../docs/arquitectura.md) — capas, modelo de dominio y ejemplos de código por capa. Leer
   antes de crear módulos.
 
 ### Del repositorio
