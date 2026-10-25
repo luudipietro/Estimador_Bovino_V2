@@ -46,7 +46,7 @@ Un animal **descentrado pero completo** es válido.
 |---|---|---|
 | `modelo_no_disponible` | sí | El modelo no cargó o no responde |
 | `tiempo_excedido` | sí | Superó `PRESUPUESTO_ESTIMACION_S` |
-| `referencia_inaccesible` | sí | No se pudo descargar la imagen desde la URL firmada |
+| `referencia_inaccesible` | sí | No se pudo obtener la imagen: falló la descarga de la URL firmada, la imagen subida ya no estaba en el almacén temporal, o su contenido no coincide con el `sha256` declarado |
 | `error_interno` | no | Cualquier otro caso |
 
 ## Reglas de salida

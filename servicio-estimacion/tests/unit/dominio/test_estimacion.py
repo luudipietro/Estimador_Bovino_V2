@@ -12,10 +12,19 @@ from bv_estimacion.dominio.estimacion import (
     agregar_resultados,
     huella_de_imagenes,
 )
-from bv_estimacion.dominio.valores import IdEvento, IdTrabajo, VersionModelo
+from bv_estimacion.dominio.valores import IdEvento, IdTrabajo, OrigenImagen, ReferenciaImagen, VersionModelo
 
 VERSION = VersionModelo("2026-09-25 / AcmeAI-BMGF", 36.0, 621.0)
 T0 = datetime(2026, 10, 25, 12, 0, 0, tzinfo=UTC)
+
+
+def sha(letra: str) -> str:
+    """Un SHA-256 de mentira pero bien formado: 64 caracteres hexadecimales."""
+    return letra * 64
+
+
+def ref(letra: str, origen: OrigenImagen = OrigenImagen.ALMACEN_TEMPORAL) -> ReferenciaImagen:
+    return ReferenciaImagen(origen, f"ubicacion-{letra}", sha(letra))
 
 
 def foto(peso: float | None, *motivos: MotivoNoSe) -> ResultadoFoto:
@@ -138,10 +147,23 @@ def test_r22_cuatro_fotos_es_el_maximo_valido() -> None:
 
 
 @pytest.mark.requisito("RF-19")
-def test_huella_igual_para_las_mismas_imagenes_y_distinta_si_cambian_o_cambia_el_orden() -> None:
-    assert huella_de_imagenes(["a", "b"]) == huella_de_imagenes(["a", "b"])
-    assert huella_de_imagenes(["a", "b"]) != huella_de_imagenes(["a", "c"])
-    assert huella_de_imagenes(["a", "b"]) != huella_de_imagenes(["b", "a"])
+def test_huella_igual_para_las_mismas_imagenes_y_distinta_si_cambian() -> None:
+    assert huella_de_imagenes([sha("a"), sha("b")]) == huella_de_imagenes([sha("a"), sha("b")])
+    assert huella_de_imagenes([sha("a"), sha("b")]) != huella_de_imagenes([sha("a"), sha("c")])
+    assert huella_de_imagenes([sha("a")]) != huella_de_imagenes([sha("a"), sha("b")])
+
+
+@pytest.mark.requisito("RF-17")
+def test_una_permutacion_de_las_mismas_imagenes_da_la_misma_huella() -> None:
+    """Un reintento con otro orden (sincronización offline, RF-17) es el mismo pedido, no un 409."""
+    esperada = huella_de_imagenes([sha("a"), sha("b"), sha("c")])
+    assert huella_de_imagenes([sha("c"), sha("a"), sha("b")]) == esperada
+    assert huella_de_imagenes([sha("b"), sha("c"), sha("a")]) == esperada
+
+
+@pytest.mark.requisito("RF-17")
+def test_la_huella_no_distingue_mayusculas_en_el_hash() -> None:
+    assert huella_de_imagenes([sha("a")]) == huella_de_imagenes([sha("A")])
 
 
 @pytest.mark.requisito("RF-19")
@@ -153,14 +175,14 @@ def test_huella_exige_al_menos_una_imagen() -> None:
 # --- Trabajo ------------------------------------------------------------------------------------
 
 
-def trabajo(imagenes: tuple[str, ...] = ("ref-1",)) -> Trabajo:
+def trabajo(imagenes: tuple[ReferenciaImagen, ...] = (ref("a"),)) -> Trabajo:
     return Trabajo.crear(
         IdTrabajo("trb_01"),
         IdEvento("c3b1"),
-        huella_de_imagenes(["hash-1"]),
         imagenes,
         creado=T0,
         metadatos={"raza": "Brangus"},
+        url_notificacion="https://backend.example/callback",
     )
 
 
@@ -169,6 +191,7 @@ def test_un_trabajo_nuevo_nace_pendiente() -> None:
     t = trabajo()
     assert t.estado is EstadoTrabajo.PENDIENTE
     assert t.metadatos == {"raza": "Brangus"}
+    assert t.url_notificacion == "https://backend.example/callback"
     assert t.resultado is None
     assert t.cola_ms is None
     assert t.total_ms is None
@@ -178,14 +201,14 @@ def test_un_trabajo_nuevo_nace_pendiente() -> None:
 @pytest.mark.parametrize("cantidad", [0, 5])
 def test_r18_un_trabajo_lleva_de_una_a_cuatro_imagenes(cantidad: int) -> None:
     with pytest.raises(ErrorDeDominio) as excinfo:
-        trabajo(tuple(f"ref-{i}" for i in range(cantidad)))
+        trabajo(tuple(ref(letra) for letra in "abcde"[:cantidad]))
     assert excinfo.value.codigo is CodigoError.CANTIDAD_IMAGENES_INVALIDA
 
 
 @pytest.mark.requisito("RF-19")
 def test_las_fechas_del_trabajo_llevan_zona_horaria() -> None:
     with pytest.raises(ValueError):
-        Trabajo.crear(IdTrabajo("t"), IdEvento("e"), "h", ("r",), creado=datetime(2026, 10, 25, 12, 0, 0))
+        Trabajo.crear(IdTrabajo("t"), IdEvento("e"), (ref("a"),), creado=datetime(2026, 10, 25, 12, 0, 0))
     with pytest.raises(ValueError):
         trabajo().iniciar(datetime(2026, 10, 25, 12, 0, 1))
 
@@ -203,8 +226,28 @@ def test_el_trabajo_es_inmutable_y_cada_transicion_devuelve_otro() -> None:
 @pytest.mark.requisito("RF-19")
 def test_idempotencia_mismo_pedido_se_reconoce_por_la_huella() -> None:
     t = trabajo()
-    assert t.es_mismo_pedido(huella_de_imagenes(["hash-1"]))
-    assert not t.es_mismo_pedido(huella_de_imagenes(["hash-2"]))
+    assert t.es_mismo_pedido(huella_de_imagenes([sha("a")]))
+    assert not t.es_mismo_pedido(huella_de_imagenes([sha("b")]))
+
+
+@pytest.mark.requisito("RF-17")
+def test_el_reintento_con_otro_orden_es_el_mismo_pedido() -> None:
+    original = trabajo((ref("a"), ref("b"), ref("c")))
+    assert original.es_mismo_pedido(huella_de_imagenes([sha("c"), sha("a"), sha("b")]))
+
+
+@pytest.mark.requisito("RF-17")
+def test_las_imagenes_conservan_el_orden_del_primer_pedido() -> None:
+    """Los índices ("imagen 1", "imagen 2") salen del primer pedido, aunque la huella ignore el orden."""
+    original = trabajo((ref("c"), ref("a"), ref("b")))
+    assert [i.sha256[0] for i in original.imagenes] == ["c", "a", "b"]
+    assert original.huella_imagenes == huella_de_imagenes([sha("a"), sha("b"), sha("c")])
+
+
+@pytest.mark.requisito("RF-19")
+def test_el_trabajo_mezcla_origenes_y_guarda_la_ubicacion() -> None:
+    t = trabajo((ref("a"), ref("b", OrigenImagen.URL)))
+    assert [i.origen for i in t.imagenes] == [OrigenImagen.ALMACEN_TEMPORAL, OrigenImagen.URL]
 
 
 @pytest.mark.requisito("RF-20")

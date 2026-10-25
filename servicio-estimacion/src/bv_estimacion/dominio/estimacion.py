@@ -14,7 +14,7 @@ from bv_estimacion.dominio.errores import (
     MotivoNoSe,
     TransicionInvalida,
 )
-from bv_estimacion.dominio.valores import IdEvento, IdTrabajo, VersionModelo
+from bv_estimacion.dominio.valores import IdEvento, IdTrabajo, ReferenciaImagen, VersionModelo
 
 MIN_IMAGENES = 1
 MAX_IMAGENES = 4
@@ -90,10 +90,16 @@ def agregar_resultados(
 
 def huella_de_imagenes(hashes_sha256: Sequence[str]) -> str:
     """Huella del pedido para la idempotencia: mismo `id_evento` + misma huella = mismo trabajo.
-    Depende del orden: las mismas fotos en otro orden son otro pedido."""
+
+    Se calcula sobre los hashes **ordenados**: el mismo conjunto de fotos en otro orden da la misma huella, así
+    un reintento (por ejemplo, al sincronizar tras un corte, RF-17) recibe el trabajo original y no un 409.
+    Los índices de las imágenes ("imagen 1", "imagen 2") siguen el orden del **primer** pedido, que es el que
+    quedó guardado en el `Trabajo`.
+    """
     if not hashes_sha256:
         raise ValueError("hacen falta los hashes de las imágenes")
-    return hashlib.sha256("\n".join(hashes_sha256).encode("utf-8")).hexdigest()
+    ordenados = sorted(h.lower() for h in hashes_sha256)
+    return hashlib.sha256("\n".join(ordenados).encode("utf-8")).hexdigest()
 
 
 class EstadoTrabajo(StrEnum):
@@ -122,10 +128,13 @@ class Trabajo:
     id: IdTrabajo
     id_evento: IdEvento
     huella_imagenes: str
-    imagenes: tuple[str, ...]  # referencias temporales: el servicio no es dueño de las imágenes
+    # En el orden del primer pedido: de ahí salen los índices de la respuesta. El servicio no es dueño de las imágenes.
+    imagenes: tuple[ReferenciaImagen, ...]
     creado: datetime
     estado: EstadoTrabajo = EstadoTrabajo.PENDIENTE
     metadatos: Mapping[str, object] = field(default_factory=dict)  # R-26: no alteran la estimación
+    # El dominio solo guarda el dato; que el host esté en la allowlist se valida en el borde.
+    url_notificacion: str | None = None
     iniciado: datetime | None = None
     finalizado: datetime | None = None
     resultado: ResultadoEstimacion | None = None
@@ -139,10 +148,10 @@ class Trabajo:
         cls,
         id: IdTrabajo,
         id_evento: IdEvento,
-        huella_imagenes: str,
-        imagenes: Sequence[str],
+        imagenes: Sequence[ReferenciaImagen],
         creado: datetime,
         metadatos: Mapping[str, object] | None = None,
+        url_notificacion: str | None = None,
     ) -> "Trabajo":
         if not MIN_IMAGENES <= len(imagenes) <= MAX_IMAGENES:
             raise ErrorDeDominio(
@@ -154,10 +163,11 @@ class Trabajo:
         return cls(
             id=id,
             id_evento=id_evento,
-            huella_imagenes=huella_imagenes,
+            huella_imagenes=huella_de_imagenes([i.sha256 for i in imagenes]),
             imagenes=tuple(imagenes),
             creado=creado,
             metadatos=dict(metadatos or {}),
+            url_notificacion=url_notificacion,
         )
 
     def es_mismo_pedido(self, huella_imagenes: str) -> bool:
