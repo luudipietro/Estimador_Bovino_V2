@@ -116,6 +116,76 @@ async def lifespan(app: FastAPI):
 - Cambiar de modelo (por ejemplo `modelos-v2` con datos argentinos) debe requerir **solo** archivos y
   configuración.
 
+### Qué cubre el adaptador (sin tocar `estimador/estimador.py`)
+
+`EstimadorPeso.estimar()` devuelve un `dict` pensado para consumo humano. El adaptador
+(`infraestructura/ml/adaptador_modelo.py`) lo convierte a `ResultadoFoto` y cubre estas brechas:
+
+1. **Motivos en texto libre → códigos estables.** El módulo devuelve `motivo` como un string con los motivos
+   unidos por `"; "`. El adaptador lo separa y lo traduce con una tabla **exacta**:
+
+   | Texto del módulo | Código (`errores.md`) |
+   |---|---|
+   | `no se detectó ningún bovino en la foto` (o `peso_kg is None`) | `sin_animal` |
+   | `el bovino no se distingue con claridad` | `deteccion_dudosa` |
+   | `hay partes del cuerpo tapadas o fuera de cuadro` | `partes_tapadas` |
+   | `el animal aparece cortado por el borde de la foto` | `animal_cortado` |
+   | `el peso estimado cae fuera del rango con el que se entrenó el modelo` | `fuera_de_rango` |
+
+   Un texto que no esté en la tabla **no se descarta en silencio**: el adaptador lo registra en el log y falla el
+   test de contrato del adaptador, para detectar cambios futuros del módulo.
+2. **Rango de validez.** `estimador.py` tiene el rango escrito en el código (`RANGO_ENTRENAMIENTO`). La fuente de
+   verdad es `rango_entrenamiento_kg` de `config.json`: el dominio recalcula R-20 con ese rango
+   (`VersionModelo.en_rango()`), sin depender del motivo que haya informado el módulo.
+3. **Imagen borrosa (R-24).** El módulo no la calcula. El adaptador mide la varianza del Laplaciano sobre el
+   `recorte` que devuelve el módulo; el umbral viene de configuración y no tiene valor por defecto hasta
+   calibrarlo (ver `errores.md`).
+4. **Concurrencia.** Los modelos de Ultralytics no son seguros si varios hilos comparten una misma instancia. El
+   adaptador mantiene un **pool de N instancias** de `EstimadorPeso` (`HILOS_INFERENCIA`; unos 130 MB de modelos
+   cada una) y un `CapacityLimiter(N)`. Una instancia se toma del pool para cada inferencia y se devuelve al
+   terminar.
+5. **Umbrales de R-25.** `CONF_DETECCION_MIN` y `CONF_KEYPOINT_MIN` se importan de `estimador`, no se copian.
+
+### Cómo se instala `estimador/`
+`estimador/pyproject.toml` declara `[build-system]` (hatchling, solo `estimador.py`), así que el servicio lo toma
+como dependencia por ruta:
+
+```toml
+# servicio-estimacion/pyproject.toml
+dependencies = ["estimador-peso-bovino"]
+[tool.uv.sources]
+estimador-peso-bovino = { path = "../estimador" }
+```
+
+Los `.pt` no viajan en el paquete: se descargan con `python ../estimador/descargar_modelos.py` y se apunta a la
+carpeta con `CARPETA_MODELOS`.
+
+## Variables de entorno
+
+Las lee `infraestructura/config.py` (`pydantic-settings`). Nunca se versionan: el repo solo trae
+`servicio-estimacion/.env.example`, sin secretos.
+
+| Variable | Obligatoria | Por defecto | Uso |
+|---|---|---|---|
+| `TOKEN_SERVICIO` | sí | — | Token Bearer que usa el adaptador C# (rotado por ambiente) |
+| `SECRETO_HMAC` | sí | — | Firma del callback (`X-BV-Firma`) |
+| `HOSTS_IMAGEN_PERMITIDOS` | si se usan URLs firmadas | vacío | Allowlist de hosts para `referencias_imagen` (SSRF) |
+| `HOSTS_CALLBACK_PERMITIDOS` | si se usa callback | vacío | Allowlist de hosts para `url_notificacion` (SSRF) |
+| `CARPETA_MODELOS` | no | `../estimador/modelos` | Dónde están los `.pt`, `config.json` y `SHA256SUMS.txt` |
+| `PRESUPUESTO_ESTIMACION_S` | no | `45` (propuesto) | Límite por trabajo (RNF-01) |
+| `HILOS_INFERENCIA` | no | núcleos disponibles | Tamaño del pool y del `CapacityLimiter` |
+| `MAX_MB_IMAGEN` | no | `25` | Límite por imagen |
+| `RESOLUCION_MINIMA_MP` | no | `3` (a confirmar) | Umbral de `resolucion_insuficiente` |
+| `UMBRAL_BORROSIDAD` | no | sin valor | Umbral de R-24. Sin valor, la regla queda **desactivada** |
+| `TTL_TRABAJOS_S` | no | `86400` (propuesto) | Cuánto se conserva un trabajo (ver `contrato-backend.md`) |
+| `TAMANO_COLA` | no | `200` (propuesto) | Trabajos que pueden esperar (ver `contrato-backend.md`) |
+
+## Logs
+
+JSON, una línea por evento. Campos fijos: `ts`, `nivel`, `evento`, `request_id`, `id_evento`, `id_trabajo`,
+`version_modelo` y `duracion_ms` por etapa cuando aplica. **Nunca** imágenes, URLs firmadas completas, tokens ni
+coordenadas GPS.
+
 ## Rendimiento
 
 - Los uploads se leen por chunks y el límite de tamaño (25 MB por imagen) se valida **antes** de decodificar.

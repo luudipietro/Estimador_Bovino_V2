@@ -22,6 +22,59 @@ responsable del adaptador.
 | `POST` | `/v1/validaciones` | Validación rápida de calidad sin estimar (formato, resolución, animal presente). Apoya RF-15 desde el backend. | 200 |
 | `GET` | `/v1/modelo` | Versión, rango de validez y fecha de entrenamiento | 200 |
 
+## `POST /v1/estimaciones`: formato del pedido
+
+Encabezados: `Authorization: Bearer <token>` e `Idempotency-Key: <id_evento>` (obligatorios).
+
+Hay **dos formas** de mandar las imágenes, mutuamente excluyentes: si llegan las dos, `422
+cantidad_imagenes_invalida`.
+
+**A. `multipart/form-data`**
+
+| Campo | Tipo | Obligatorio | Notas |
+|---|---|---|---|
+| `imagenes` | archivo, repetible (1–4) | sí | El tipo real se detecta por *magic bytes*, no por extensión |
+| `metadatos` | texto con un objeto JSON | no | R-26: se devuelve sin modificar y no altera la estimación |
+| `url_notificacion` | texto (URL HTTPS) | no | Host en `HOSTS_CALLBACK_PERMITIDOS` |
+
+**B. `application/json`**
+```json
+{"referencias_imagen": ["https://almacenamiento.example/…?firma=…"],
+ "metadatos": {"raza": "Brangus"},
+ "url_notificacion": "https://backend.example/api/estimaciones/callback"}
+```
+`referencias_imagen`: 1–4 URLs HTTPS cuyo host esté en `HOSTS_IMAGEN_PERMITIDOS`.
+
+Respuesta **202**: encabezado `Location: /v1/estimaciones/{id}` y cuerpo
+`{"id": "trb_01J…", "id_evento": "c3b1…", "estado": "pendiente"}`.
+Si el `id_evento` ya existía con la misma imagen, se devuelve el trabajo existente (con su estado actual).
+
+## Errores 4xx: formato
+
+`application/problem+json` (RFC 9457). El `type` es `https://bovinovision/errores/<codigo>` (identificador, no
+tiene por qué resolver). Ejemplo:
+```json
+{"type": "https://bovinovision/errores/formato_no_admitido",
+ "title": "Formato de imagen no admitido",
+ "status": 415,
+ "detail": "El archivo no es JPEG, PNG ni HEIC.",
+ "codigo": "formato_no_admitido",
+ "request_id": "7f1c…"}
+```
+
+## Ciclo de vida del trabajo
+
+Valores **propuestos**, a confirmar con el equipo (el TP8 no los define):
+
+- **Retención:** el trabajo se conserva `TTL_TRABAJOS_S` (24 h) desde que termina. El backend C# es el dueño del
+  evento de pesaje; este servicio no es un archivo.
+- **`GET` sobre un trabajo vencido o inexistente:** `404 trabajo_no_encontrado`. No se distingue entre ambos
+  casos.
+- **Cola:** admite hasta `TAMANO_COLA` trabajos esperando. Si está llena, el `POST` responde `503 cola_llena` con
+  `Retry-After`; el backend reintenta con el mismo `Idempotency-Key`.
+- **Reinicio del servicio:** con el repositorio en memoria, los trabajos pendientes se pierden. El backend lo
+  detecta por el `404` y reenvía con el mismo `id_evento`.
+
 ## Resultado `completado`
 ```json
 {

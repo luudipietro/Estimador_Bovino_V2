@@ -12,11 +12,13 @@ Hay tres clases de resultado y **no se mezclan**.
 | `formato_no_admitido` | 415 | El tipo real del archivo (por *magic bytes*) no es JPEG, PNG ni HEIC |
 | `imagen_corrupta` | 422 | No se puede decodificar |
 | `imagen_muy_grande` | 413 | Supera el límite (25 MB) |
-| `resolucion_insuficiente` | 422 | Por debajo del umbral de `verificar_fotos.py` |
-| `cantidad_imagenes_invalida` | 422 | Menos de 1 o más de 4 |
+| `resolucion_insuficiente` | 422 | Menos de 3 MP (el umbral de `verificar_fotos.py`; configurable con `RESOLUCION_MINIMA_MP`, a confirmar) |
+| `cantidad_imagenes_invalida` | 422 | Menos de 1, más de 4, o imágenes y referencias en el mismo pedido |
 | `id_evento_en_conflicto` | 409 | Mismo `id_evento` con otra imagen |
 | `referencia_no_permitida` | 422 | URL de imagen o de callback fuera de la allowlist |
 | `no_autenticado` | 401 | Token ausente o inválido |
+| `trabajo_no_encontrado` | 404 | El `id` no existe o ya venció (`TTL_TRABAJOS_S`) |
+| `cola_llena` | 503 | Hay `TAMANO_COLA` trabajos esperando. Lleva `Retry-After`. *(propuesto, a confirmar)* |
 
 ## 2. El modelo no puede estimar con confianza: **no es un error**
 
