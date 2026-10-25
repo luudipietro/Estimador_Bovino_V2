@@ -1,5 +1,7 @@
 # BovinoVision · Servicio de estimación de peso (API Python)
 
+Sus reglas aplican solo al servicio Python de API REST.
+
 BovinoVision estima el **peso de bovinos a partir de una foto lateral tomada con un smartphone**, sin balanza, y
 lleva el historial y la analítica del rodeo, para **productores ganaderos y operarios de campo en Argentina**.
 Este archivo guía a cualquier agente de IA que escriba o revise el **servicio de estimación**: la API en Python que
