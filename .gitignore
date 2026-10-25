@@ -69,3 +69,7 @@ desktop.ini
 # Secretos y configuración local del servicio (el orden importa: la excepción va después)
 .env*
 !.env.example
+
+# Cobertura de pytest-cov
+.coverage
+htmlcov/
