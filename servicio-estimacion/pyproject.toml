@@ -1,0 +1,77 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bv-estimacion"
+version = "0.1.0"
+description = "BovinoVision: servicio de estimación de peso bovino (API REST)"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "estimador-peso-bovino",
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    "pydantic-settings",
+    "httpx",
+    "pillow-heif",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "respx",
+    "ruff",
+    "mypy",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bv_estimacion"]
+
+[tool.uv]
+required-version = ">=0.13.5"
+
+# uv no hereda los `sources` de una dependencia por ruta: se repiten acá
+[tool.uv.sources]
+estimador-peso-bovino = { path = "../estimador" }
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+# Marcas desconocidas rompen (un typo en @pytest.mark.requisito no pasa inadvertido).
+# La cobertura mínima NO va acá: se exige en el comando (--cov-fail-under=90), ver AGENTS.md.
+addopts = '--strict-markers -m "not modelo and not rendimiento"'
+markers = [
+    "requisito(id): requisito del TP7/TP8 que cubre el test, por ejemplo RF-20",
+    "caso(id): ID del caso de prueba del Anexo B (no inventar IDs)",
+    "modelo: usa los pesos reales (necesita descargar_modelos.py)",
+    "rendimiento: prueba de carga (RNF-01, RNF-03)",
+]
+
+[tool.coverage.run]
+source = ["bv_estimacion"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+# --strict solo donde el código es puro: infraestructura/ usa torch y ultralytics
+[tool.mypy]
+python_version = "3.13"
+
+[[tool.mypy.overrides]]
+module = ["bv_estimacion.dominio.*", "bv_estimacion.aplicacion.*"]
+strict = true
