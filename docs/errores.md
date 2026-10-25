@@ -34,7 +34,9 @@ El trabajo termina `completado`, con `confiable: false` y la lista `motivos` (R-
 | `fuera_de_rango` | El peso estimado cae fuera del rango de `config.json` | R-20 |
 
 > **R-24:** el umbral de la varianza del Laplaciano **no está definido**. Se calibra con las imágenes válidas y
-> borrosas del set de prueba y se deja configurable. No inventar un número.
+> borrosas del set de prueba y se deja configurable. No inventar un número. Sin umbral configurado
+> (`UMBRAL_BORROSIDAD` vacío) la regla **no se aplica**: ninguna foto se marca `imagen_borrosa`. El adaptador mide
+> y el dominio decide (ver `reglas-dominio.md`).
 
 Un animal **descentrado pero completo** es válido.
 
