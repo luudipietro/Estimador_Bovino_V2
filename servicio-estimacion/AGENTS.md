@@ -52,7 +52,8 @@ Frontend web (React + Vite, offline) ──► Backend de negocio (C#) ──ada
 - `python ../estimador/descargar_modelos.py` — descarga y verifica los pesos. **Obligatorio la primera vez y tras
   cada cambio de versión del modelo.**
 - `uv run uvicorn bv_estimacion.api.main:create_app --factory --reload --port 8001` — **arranca el servidor en
-  local** (docs en `http://localhost:8001/docs`).
+  local** (docs en `http://localhost:8001/docs`; hay que arrancarlo con `DOCS_HABILITADAS=true`, por defecto está en
+  `false` y `/docs` y `/openapi.json` no existen).
 - `uv run pytest` — **tests unitarios y de API. Deben pasar antes de cada commit.** Excluye las marcas `modelo` y
   `rendimiento`.
 - `uv run pytest -m modelo` — tests con los pesos reales.
