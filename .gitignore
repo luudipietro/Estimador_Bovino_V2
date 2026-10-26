@@ -73,3 +73,5 @@ desktop.ini
 *.swp
 # Fotos de los sets de demo (Bangladesh y del establecimiento): se regeneran con bovinovision/53_armar_demos.py
 demo/*/*.jpg
+# API propia de Luciano (no se sube; la oficial es servicio-estimacion/ de Maximo)
+API_estimacion/
