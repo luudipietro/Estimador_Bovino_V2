@@ -34,7 +34,9 @@ El trabajo termina `completado`, con `confiable: false` y la lista `motivos` (R-
 | `fuera_de_rango` | El peso estimado cae fuera del rango de `config.json` | R-20 |
 
 > **R-24:** el umbral de la varianza del Laplaciano **no está definido**. Se calibra con las imágenes válidas y
-> borrosas del set de prueba y se deja configurable. No inventar un número.
+> borrosas del set de prueba y se deja configurable. No inventar un número. Sin umbral configurado
+> (`UMBRAL_BORROSIDAD` vacío) la regla **no se aplica**: ninguna foto se marca `imagen_borrosa`. El adaptador mide
+> y el dominio decide (ver `reglas-dominio.md`).
 
 Un animal **descentrado pero completo** es válido.
 
@@ -44,7 +46,7 @@ Un animal **descentrado pero completo** es válido.
 |---|---|---|
 | `modelo_no_disponible` | sí | El modelo no cargó o no responde |
 | `tiempo_excedido` | sí | Superó `PRESUPUESTO_ESTIMACION_S` |
-| `referencia_inaccesible` | sí | No se pudo descargar la imagen desde la URL firmada |
+| `referencia_inaccesible` | sí | No se pudo obtener la imagen: falló la descarga de la URL firmada, la imagen subida ya no estaba en el almacén temporal, o su contenido no coincide con el `sha256` declarado |
 | `error_interno` | no | Cualquier otro caso |
 
 ## Reglas de salida

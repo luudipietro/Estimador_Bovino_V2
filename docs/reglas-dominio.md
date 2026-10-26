@@ -12,6 +12,12 @@ versión 1 para no romper referencias.
   confiable, el agregado tampoco.
 - **R-23 — Todo resultado registra la versión del modelo.**
 - **R-24 — Imagen borrosa → no confiable** (`imagen_borrosa`). Umbral pendiente de calibrar (ver `errores.md`).
+  - **Quién hace qué:** el *adaptador* (infraestructura) **mide** la varianza del Laplaciano sobre el recorte,
+    porque necesita la imagen. El *dominio* (`dominio/calidad.py`) **decide** con esa varianza y el umbral, así que
+    la regla se prueba sin imágenes.
+  - **Umbral `None` = R-24 no se aplica.** Mientras no se calibre, ninguna foto se marca borrosa. No hay un valor
+    por defecto inventado. El código `imagen_borrosa` sigue existiendo en el catálogo y la regla se activa cuando
+    se configure `UMBRAL_BORROSIDAD`.
 - **R-25 — Animal cortado por el borde, partes tapadas, detección dudosa o ausente → no confiable**, con los
   umbrales actuales del `EstimadorPeso` (`CONF_DETECCION_MIN = 0.35`, `CONF_KEYPOINT_MIN = 0.50`).
 - **R-26 — Raza, edad y categoría son opcionales:** se reciben como `metadatos`, se devuelven sin modificar y

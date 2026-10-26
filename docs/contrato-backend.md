@@ -39,11 +39,19 @@ cantidad_imagenes_invalida`.
 
 **B. `application/json`**
 ```json
-{"referencias_imagen": ["https://almacenamiento.example/…?firma=…"],
+{"referencias_imagen": [{"url": "https://almacenamiento.example/…?firma=…", "sha256": "9f86d081…0a08"}],
  "metadatos": {"raza": "Brangus"},
  "url_notificacion": "https://backend.example/api/estimaciones/callback"}
 ```
-`referencias_imagen`: 1–4 URLs HTTPS cuyo host esté en `HOSTS_IMAGEN_PERMITIDOS`.
+`referencias_imagen`: 1–4 objetos `{url, sha256}`.
+- `url`: HTTPS, con el host en `HOSTS_IMAGEN_PERMITIDOS`.
+- `sha256`: SHA-256 del contenido de la imagen, **64 caracteres hexadecimales**. Se aceptan mayúsculas y minúsculas
+  y el servicio las convierte a minúsculas, así que `AB…` y `ab…` son el mismo hash. Un valor mal formado se rechaza
+  al recibir el pedido.
+- Al descargar, el servicio **verifica** que el contenido coincida con el `sha256` declarado. Si no coincide, el
+  trabajo queda `fallido` con `referencia_inaccesible`.
+
+Con multipart el servicio calcula el SHA-256 de cada archivo recibido.
 
 Respuesta **202**: encabezado `Location: /v1/estimaciones/{id}` y cuerpo
 `{"id": "trb_01J…", "id_evento": "c3b1…", "estado": "pendiente"}`.
@@ -105,8 +113,14 @@ Valores **propuestos**, a confirmar con el equipo (el TP8 no los define):
 ```
 
 ## Idempotencia
-- Mismo `id_evento` + misma imagen (SHA-256) → devuelve el mismo trabajo.
-- Mismo `id_evento` + otra imagen → `409`.
+- La **huella** del pedido se calcula sobre los SHA-256 de las imágenes **ordenados**. No depende ni de la URL ni
+  de su firma: solo del contenido.
+- Mismo `id_evento` + misma huella → devuelve el mismo trabajo. Un reintento con las mismas imágenes **en otro
+  orden** también es el mismo pedido (RF-17: la sincronización offline puede reordenarlas), no un `409`.
+- Mismo `id_evento` + otra huella → `409 id_evento_en_conflicto`.
+- **Los índices siguen el orden del primer pedido.** "Imagen 1", "imagen 2" en `imagenes` y en `advertencias` se
+  asignan según el orden en que llegaron la primera vez. Si un reintento trae otro orden, la respuesta es el
+  trabajo original con sus índices originales; el segundo orden se ignora.
 
 ## Callback (si se envió `url_notificacion`)
 - `POST` a un host de la allowlist con el mismo cuerpo que `GET /v1/estimaciones/{id}`.
