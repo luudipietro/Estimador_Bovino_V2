@@ -11,7 +11,7 @@ Hay tres clases de resultado y **no se mezclan**.
 |---|---|---|
 | `formato_no_admitido` | 415 | El tipo real del archivo (por *magic bytes*) no es JPEG, PNG ni HEIC |
 | `imagen_corrupta` | 422 | No se puede decodificar |
-| `imagen_muy_grande` | 413 | Supera el límite (25 MB) |
+| `imagen_muy_grande` | 413 | Supera 25 MB (`MAX_MB_IMAGEN`) **o el límite de píxeles configurado** (`MAX_PIXELES`), incluida una bomba de descompresión (`DecompressionBombError` de Pillow). No se agrega un código nuevo: sería un cambio de contrato |
 | `resolucion_insuficiente` | 422 | Menos de 3 MP (el umbral de `verificar_fotos.py`; configurable con `RESOLUCION_MINIMA_MP`, a confirmar) |
 | `cantidad_imagenes_invalida` | 422 | Menos de 1, más de 4, o imágenes y referencias en el mismo pedido |
 | `id_evento_en_conflicto` | 409 | Mismo `id_evento` con otra imagen |

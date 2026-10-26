@@ -211,7 +211,10 @@ Las lee `infraestructura/config.py` (`pydantic-settings`). Nunca se versionan: e
 | `CARPETA_MODELOS` | no | `../estimador/modelos` | Dónde están los `.pt`, `config.json` y `SHA256SUMS.txt` |
 | `PRESUPUESTO_ESTIMACION_S` | no | `45` (propuesto) | Límite por trabajo (RNF-01) |
 | `HILOS_INFERENCIA` | no | núcleos disponibles | Tamaño del pool y del `CapacityLimiter` |
-| `MAX_MB_IMAGEN` | no | `25` | Límite por imagen |
+| `MAX_MB_IMAGEN` | no | `25` | Límite por imagen, en MB |
+| `MAX_PIXELES` | no | `100000000` (propuesto) | Límite de píxeles por imagen (ancho × alto). Protege de bombas de descompresión. Pillow corta por su cuenta cerca de los 178 MP, así que ese es el techo real |
+| `CARPETA_TEMPORAL` | no | `<carpeta temporal del sistema>/bv_estimacion` | Dónde se guardan en disco las imágenes subidas por multipart hasta que termina el trabajo |
+| `TTL_IMAGENES_S` | no | `3600` (propuesto) | Respaldo: una imagen temporal que nadie borró vence a los 3600 s. Tiene que superar el presupuesto de 45 s más lo que espere en la cola |
 | `RESOLUCION_MINIMA_MP` | no | `3` (a confirmar) | Umbral de `resolucion_insuficiente` |
 | `UMBRAL_BORROSIDAD` | no | sin valor | Umbral de R-24. Sin valor, la regla queda **desactivada** |
 | `TTL_TRABAJOS_S` | no | `86400` (propuesto) | Cuánto se conserva un trabajo (ver `contrato-backend.md`) |
