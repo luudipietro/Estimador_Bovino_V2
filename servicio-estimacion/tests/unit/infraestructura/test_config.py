@@ -3,7 +3,11 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from bv_estimacion.dominio.errores import CodigoError, ErrorDeDominio
 from bv_estimacion.infraestructura.config import Configuracion
+from bv_estimacion.infraestructura.imagenes.validacion import validar_imagen
+from tests import imagenes_sinteticas as img
+from tests.conftest import CARPETA_MODELOS_REPO, RAIZ_REPO
 
 VARIABLES = [
     "TOKEN_SERVICIO", "SECRETO_HMAC", "HOSTS_IMAGEN_PERMITIDOS", "HOSTS_CALLBACK_PERMITIDOS", "CARPETA_MODELOS",
@@ -32,7 +36,8 @@ def test_los_valores_por_defecto_son_los_documentados(monkeypatch: pytest.Monkey
     cfg = configuracion(monkeypatch)
     assert cfg.presupuesto_estimacion_s == 45.0
     assert cfg.max_mb_imagen == 25
-    assert cfg.resolucion_minima_mp == 3.0
+    assert cfg.resolucion_minima_mp == 0.75
+    assert cfg.resolucion_minima_px == 750_000
     assert cfg.ttl_trabajos_s == 86_400
     assert cfg.tamano_cola == 200
     assert cfg.intentos_callback == 3
@@ -145,3 +150,53 @@ def test_las_carpetas_se_configuran_como_rutas(monkeypatch: pytest.MonkeyPatch, 
     cfg = configuracion(monkeypatch, CARPETA_TEMPORAL=str(tmp_path / "tmp"), CARPETA_MODELOS=str(tmp_path / "m"))
     assert cfg.carpeta_temporal == tmp_path / "tmp"
     assert cfg.carpeta_modelos == tmp_path / "m"
+
+
+RAIZ_SERVICIO = RAIZ_REPO / "servicio-estimacion"
+
+
+@pytest.mark.requisito("RF-15")
+def test_la_resolucion_minima_por_defecto_acepta_1024x768_y_rechaza_800x600(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Con el límite real de la configuración, no con un número suelto: 786 432 px pasan, 480 000 no."""
+    cfg = configuracion(monkeypatch)
+    limites = {
+        "max_bytes": cfg.max_bytes_imagen,
+        "max_pixeles": cfg.max_pixeles,
+        "resolucion_minima_px": cfg.resolucion_minima_px,
+    }
+
+    validar_imagen(img.jpeg(1024, 768), **limites)  # no lanza
+
+    with pytest.raises(ErrorDeDominio) as error:
+        validar_imagen(img.jpeg(800, 600), **limites)
+    assert error.value.codigo is CodigoError.RESOLUCION_INSUFICIENTE
+
+
+@pytest.mark.requisito("RNF-02")
+def test_carpeta_modelos_por_defecto_es_la_de_v1_del_repo(monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg = configuracion(monkeypatch)
+    assert cfg.carpeta_modelos == CARPETA_MODELOS_REPO
+    assert cfg.carpeta_modelos.is_absolute()
+
+
+@pytest.mark.requisito("RNF-02")
+def test_carpeta_modelos_por_defecto_no_depende_del_directorio_de_trabajo(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    assert configuracion(monkeypatch).carpeta_modelos == CARPETA_MODELOS_REPO
+
+
+@pytest.mark.requisito("RNF-02")
+def test_una_carpeta_modelos_relativa_se_resuelve_desde_el_proyecto_no_desde_el_directorio_de_trabajo(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """La línea de v2 del `.env.example` (`../estimador/modelos_v2`) es relativa a `servicio-estimacion/`."""
+    monkeypatch.chdir(tmp_path)
+    cfg = configuracion(monkeypatch, CARPETA_MODELOS="../estimador/modelos_v2")
+    assert cfg.carpeta_modelos == (RAIZ_SERVICIO / ".." / "estimador" / "modelos_v2").resolve()
+
+
+@pytest.mark.requisito("RNF-02")
+def test_una_carpeta_modelos_absoluta_se_respeta_tal_cual(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    assert configuracion(monkeypatch, CARPETA_MODELOS=str(tmp_path / "otra")).carpeta_modelos == tmp_path / "otra"

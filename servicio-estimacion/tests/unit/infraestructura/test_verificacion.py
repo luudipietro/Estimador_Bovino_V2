@@ -82,6 +82,18 @@ def test_config_json_roto_impide_arrancar(tmp_path: Path) -> None:
 
 
 @pytest.mark.requisito("RF-22")
+def test_sha256sums_con_finales_de_linea_de_windows_se_lee_igual(tmp_path: Path) -> None:
+    """Git en Windows convierte el archivo a CRLF y `sha256sum -c` se rompe con eso; la app no tiene que romperse."""
+    preparar(tmp_path, ARCHIVOS)
+    lista = tmp_path / "SHA256SUMS.txt"
+    lista.write_bytes(lista.read_bytes().replace(b"\n", b"\r\n"))
+    assert b"\r\n" in lista.read_bytes()
+
+    assert set(leer_sumas(lista)) == set(ARCHIVOS)  # los nombres no arrastran el retorno de carro
+    verificar_hashes_modelos(tmp_path)
+
+
+@pytest.mark.requisito("RF-22")
 def test_leer_sumas_acepta_el_formato_de_sha256sum_con_o_sin_asterisco(tmp_path: Path) -> None:
     ruta = tmp_path / "SHA256SUMS.txt"
     ruta.write_text(f"{'A' * 64} *uno.pt\n\n{'b' * 64}  dos.pt\n", encoding="utf-8")

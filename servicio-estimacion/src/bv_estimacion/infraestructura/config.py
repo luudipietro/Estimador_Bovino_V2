@@ -24,6 +24,16 @@ def _carpeta_temporal_por_defecto() -> Path:
     return Path(tempfile.gettempdir()) / "bv_estimacion"
 
 
+# `servicio-estimacion/`: de ahí cuelgan las rutas relativas. Se calcula desde este archivo y no desde el directorio de
+# trabajo, que cambia según desde dónde se arranque uvicorn o pytest.
+RAIZ_SERVICIO = Path(__file__).resolve().parents[3]
+
+
+def _carpeta_modelos_por_defecto() -> Path:
+    """Los pesos de v1, que viven en `estimador/modelos/` junto al servicio."""
+    return (RAIZ_SERVICIO.parent / "estimador" / "modelos").resolve()
+
+
 class Configuracion(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -36,14 +46,15 @@ class Configuracion(BaseSettings):
     hosts_callback_permitidos: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
     # --- Modelo y trabajo ---
-    carpeta_modelos: Path = Path("../estimador/modelos")
+    # Para v2: CARPETA_MODELOS=../estimador/modelos_v2 (relativa a `servicio-estimacion/`, no al directorio de trabajo)
+    carpeta_modelos: Path = Field(default_factory=_carpeta_modelos_por_defecto)
     presupuesto_estimacion_s: float = Field(default=45.0, gt=0)  # RNF-01 (propuesto)
     hilos_inferencia: int = Field(default_factory=_hilos_por_defecto, ge=1)
 
     # --- Imágenes ---
     max_mb_imagen: int = Field(default=25, ge=1)
     max_pixeles: int = Field(default=100_000_000, ge=1)  # propuesto: protege de bombas de descompresión
-    resolucion_minima_mp: float = Field(default=3.0, gt=0)  # a confirmar con el equipo
+    resolucion_minima_mp: float = Field(default=0.75, gt=0)  # propuesto, a confirmar con el equipo
     carpeta_temporal: Path = Field(default_factory=_carpeta_temporal_por_defecto)
     ttl_imagenes_s: int = Field(default=3600, ge=1)  # propuesto: respaldo si el proceso cae a mitad de camino
 
@@ -64,6 +75,11 @@ class Configuracion(BaseSettings):
         if isinstance(valor, str):
             return [h.strip().lower() for h in valor.split(",") if h.strip()]
         return valor
+
+    @field_validator("carpeta_modelos", mode="after")
+    @classmethod
+    def _carpeta_modelos_relativa_al_proyecto(cls, carpeta: Path) -> Path:
+        return carpeta if carpeta.is_absolute() else (RAIZ_SERVICIO / carpeta).resolve()
 
     @field_validator("umbral_borrosidad", mode="before")
     @classmethod

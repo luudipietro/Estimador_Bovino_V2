@@ -182,6 +182,12 @@ estimador-peso-bovino = { path = "../estimador" }
 Los `.pt` no viajan en el paquete: se descargan con `python ../estimador/descargar_modelos.py` y se apunta a la
 carpeta con `CARPETA_MODELOS`.
 
+**Activar otra versión del modelo (por ejemplo v2).** Alcanza con apuntar la variable a su carpeta:
+`CARPETA_MODELOS=../estimador/modelos_v2`. La carpeta tiene que traer su propio `config.json` y `SHA256SUMS.txt`: el
+servicio verifica los hashes y lee de ahí la versión y el rango de validez, así que no hay que cambiar código. Una
+ruta relativa se resuelve desde `servicio-estimacion/`, no desde el directorio donde se arranque el proceso. Mientras
+no se defina, el valor por defecto es la carpeta de v1 (`../estimador/modelos`).
+
 ## Imágenes temporales y orden de `SolicitarEstimacion`
 
 Las imágenes subidas por multipart viven en el puerto `AlmacenTemporalImagenes` desde el `POST` hasta que termina
@@ -230,14 +236,14 @@ Las lee `infraestructura/config.py` (`pydantic-settings`). Nunca se versionan: e
 | `SECRETO_HMAC` | sí | — | Firma del callback (`X-BV-Firma`) |
 | `HOSTS_IMAGEN_PERMITIDOS` | si se usan URLs firmadas | vacío | Allowlist de hosts para `referencias_imagen` (SSRF) |
 | `HOSTS_CALLBACK_PERMITIDOS` | si se usa callback | vacío | Allowlist de hosts para `url_notificacion` (SSRF) |
-| `CARPETA_MODELOS` | no | `../estimador/modelos` | Dónde están los `.pt`, `config.json` y `SHA256SUMS.txt` |
+| `CARPETA_MODELOS` | no | `../estimador/modelos` (v1) | Dónde están los `.pt`, `config.json` y `SHA256SUMS.txt`. Una ruta relativa se resuelve desde `servicio-estimacion/`, no desde el directorio de trabajo. Para usar v2: `CARPETA_MODELOS=../estimador/modelos_v2` |
 | `PRESUPUESTO_ESTIMACION_S` | no | `45` (propuesto) | Límite por trabajo (RNF-01) |
 | `HILOS_INFERENCIA` | no | núcleos disponibles, con tope de `4` (propuesto) | Cantidad de instancias del modelo y de hilos de inferencia. Cada instancia ocupa unos 130 MB |
 | `MAX_MB_IMAGEN` | no | `25` | Límite por imagen, en MB |
 | `MAX_PIXELES` | no | `100000000` (propuesto) | Límite de píxeles por imagen (ancho × alto). Protege de bombas de descompresión. Pillow corta por su cuenta cerca de los 178 MP, así que ese es el techo real |
 | `CARPETA_TEMPORAL` | no | `<carpeta temporal del sistema>/bv_estimacion` | Dónde se guardan en disco las imágenes subidas por multipart hasta que termina el trabajo |
 | `TTL_IMAGENES_S` | no | `3600` (propuesto) | Respaldo: una imagen temporal que nadie borró vence a los 3600 s. Tiene que superar el presupuesto de 45 s más lo que espere en la cola |
-| `RESOLUCION_MINIMA_MP` | no | `3` (a confirmar) | Umbral de `resolucion_insuficiente` |
+| `RESOLUCION_MINIMA_MP` | no | `0.75` (propuesto, a confirmar) | Umbral de `resolucion_insuficiente`: acepta 1024×768 (786 432 px) y rechaza 800×600 (480 000 px) |
 | `UMBRAL_BORROSIDAD` | no | sin valor | Umbral de R-24. Sin valor, la regla queda **desactivada** |
 | `TTL_TRABAJOS_S` | no | `86400` (propuesto) | Cuánto se conserva un trabajo (ver `contrato-backend.md`) |
 | `TAMANO_COLA` | no | `200` (propuesto) | Trabajos que pueden esperar (ver `contrato-backend.md`) |
