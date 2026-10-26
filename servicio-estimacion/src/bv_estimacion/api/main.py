@@ -19,6 +19,7 @@ from bv_estimacion.api.logs import CONTEXTO
 from bv_estimacion.api.logs import configurar_logs as _configurar_logs
 from bv_estimacion.api.middleware import ContextoDePeticion
 from bv_estimacion.api.v1.esquemas.trabajo import serializar_trabajo
+from bv_estimacion.api.v1.routers import modelo, salud
 from bv_estimacion.aplicacion.casos_uso.consultar_estimacion import ConsultarEstimacion
 from bv_estimacion.aplicacion.casos_uso.notificar_resultado import NotificarResultado
 from bv_estimacion.aplicacion.casos_uso.procesar_estimacion import ProcesarEstimacion
@@ -129,5 +130,7 @@ def create_app(
     )
     app.state.configuracion = config
     registrar_manejadores(app)
+    app.include_router(salud.router)
+    app.include_router(modelo.router)
     app.add_middleware(ContextoDePeticion)
     return app

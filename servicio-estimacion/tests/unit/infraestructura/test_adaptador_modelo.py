@@ -108,6 +108,15 @@ async def test_no_esta_cargado_hasta_que_cargan_todas_las_instancias() -> None:
 
 
 @pytest.mark.requisito("RNF-03")
+async def test_informa_cuantas_instancias_tiene_cargadas() -> None:
+    fabrica = Fabrica()
+    caso = AdaptadorModelo(fabrica, 3, VERSION, lado_max_px=LADO_MAX, umbral_borrosidad=None)
+    assert caso.instancias == 0
+    await caso.cargar()
+    assert caso.instancias == 3
+
+
+@pytest.mark.requisito("RNF-03")
 async def test_la_carga_corre_fuera_del_event_loop() -> None:
     _, fabrica = await adaptador(cantidad=2)
     assert threading.get_ident() not in fabrica.hilos
