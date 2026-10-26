@@ -14,6 +14,10 @@ from anyio import to_thread
 from fastapi import FastAPI
 
 from bv_estimacion.api.dependencias import Contenedor
+from bv_estimacion.api.errores import registrar_manejadores
+from bv_estimacion.api.logs import CONTEXTO
+from bv_estimacion.api.logs import configurar_logs as _configurar_logs
+from bv_estimacion.api.middleware import ContextoDePeticion
 from bv_estimacion.api.v1.esquemas.trabajo import serializar_trabajo
 from bv_estimacion.aplicacion.casos_uso.consultar_estimacion import ConsultarEstimacion
 from bv_estimacion.aplicacion.casos_uso.notificar_resultado import NotificarResultado
@@ -43,9 +47,13 @@ def create_app(
     configuracion: Configuracion | None = None,
     *,
     fabrica_modelo: ModeloConfigurado | None = None,
+    configurar_logs: bool = True,
 ) -> FastAPI:
-    """`fabrica_modelo` es para los tests: con otra fábrica, la app nunca importa torch."""
+    """`fabrica_modelo` es para los tests: con otra fábrica, la app nunca importa torch. `configurar_logs=False`
+    deja el logging como está (los tests no quieren cambiar el root logger)."""
     config = configuracion or Configuracion()
+    if configurar_logs:
+        _configurar_logs()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -63,6 +71,7 @@ def create_app(
             umbral_borrosidad=config.umbral_borrosidad,
         )
         await adaptador.cargar()
+        CONTEXTO.version_modelo = ficha.version.version  # desde acá, cada línea de log lleva la versión (R-23)
 
         # 4. Todo lo demás.
         reloj = RelojSistema()
@@ -108,10 +117,17 @@ def create_app(
             finally:
                 grupo.cancel_scope.cancel()  # apagado: cada worker corta su espera o su trabajo en curso
 
+    # La documentación interactiva queda apagada salvo que se pida: no tiene autenticación (AGENTS.md: solo /salud).
+    docs = config.docs_habilitadas
     app = FastAPI(
         title="BovinoVision · Servicio de estimación de peso",
         version="1.0.0",
         lifespan=lifespan,
+        docs_url="/docs" if docs else None,
+        redoc_url=None,
+        openapi_url="/openapi.json" if docs else None,
     )
     app.state.configuracion = config
+    registrar_manejadores(app)
+    app.add_middleware(ContextoDePeticion)
     return app

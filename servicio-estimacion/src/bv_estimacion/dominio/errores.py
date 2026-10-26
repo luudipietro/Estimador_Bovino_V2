@@ -31,6 +31,7 @@ class CodigoError(StrEnum):
     NO_AUTENTICADO = "no_autenticado"
     TRABAJO_NO_ENCONTRADO = "trabajo_no_encontrado"  # propuesto
     COLA_LLENA = "cola_llena"  # propuesto
+    SOLICITUD_INVALIDA = "solicitud_invalida"  # propuesto: pedido mal formado (falta un encabezado, JSON roto...)
 
     # --- Falla interna: el trabajo queda `fallido` ---
     MODELO_NO_DISPONIBLE = "modelo_no_disponible"
@@ -41,7 +42,7 @@ class CodigoError(StrEnum):
 
 # Códigos que el equipo todavía no confirmó (ver docs/errores.md). Si se rechazan, se borran de acá y del enum.
 CODIGOS_PROPUESTOS: frozenset[CodigoError] = frozenset(
-    {CodigoError.TRABAJO_NO_ENCONTRADO, CodigoError.COLA_LLENA},
+    {CodigoError.TRABAJO_NO_ENCONTRADO, CodigoError.COLA_LLENA, CodigoError.SOLICITUD_INVALIDA},
 )
 
 # Los únicos códigos con los que un `Trabajo` puede quedar `fallido`.

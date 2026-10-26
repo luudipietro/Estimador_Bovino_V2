@@ -41,6 +41,9 @@ class Configuracion(BaseSettings):
     token_servicio: str = Field(min_length=1)
     secreto_hmac: str = Field(min_length=1)
 
+    # --- Documentación interactiva (/docs y /openapi.json). Sin autenticación: apagada por defecto, solo para local ---
+    docs_habilitadas: bool = False
+
     # --- Allowlists (anti-SSRF). Vacías = no se acepta ninguna URL. Hosts separados por coma. ---
     hosts_imagen_permitidos: Annotated[list[str], NoDecode] = Field(default_factory=list)
     hosts_callback_permitidos: Annotated[list[str], NoDecode] = Field(default_factory=list)
