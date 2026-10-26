@@ -109,7 +109,9 @@ async def lifespan(app: FastAPI):
 
 - `infraestructura/ml/` envuelve `estimador.EstimadorPeso` e implementa el puerto `ModeloPeso`.
 - Se carga **una sola vez** en el `lifespan` y se guarda en `app.state`. `/salud` responde 503 hasta que esté listo.
-- La inferencia corre con `anyio.to_thread.run_sync` y un `CapacityLimiter` igual a los núcleos disponibles.
+- La inferencia corre en hilos (`anyio.to_thread`), una instancia del modelo por hilo (ver más abajo). Las `N`
+  instancias se cargan **todas** al arrancar; hasta que terminan, el adaptador expone `cargado = False` y `/salud`
+  responde 503.
 - Al arrancar se verifican los SHA-256 de los `.pt` (los de `descargar_modelos.py` / `SHA256SUMS.txt`). Si no
   coinciden, la app **no arranca**.
 - El rango de validez y la versión se leen de `config.json`.
@@ -132,19 +134,39 @@ async def lifespan(app: FastAPI):
    | `el animal aparece cortado por el borde de la foto` | `animal_cortado` |
    | `el peso estimado cae fuera del rango con el que se entrenó el modelo` | `fuera_de_rango` |
 
-   Un texto que no esté en la tabla **no se descarta en silencio**: el adaptador lo registra en el log y falla el
-   test de contrato del adaptador, para detectar cambios futuros del módulo.
+   Un texto que no esté en la tabla **no se descarta en silencio**: el adaptador lo registra en el log y lanza
+   `MotivoDesconocido`, así que el trabajo queda `fallido` con `error_interno` en vez de devolver un "no sé" sin
+   explicación. Además, un test de contrato lee `estimador.py` (sin importarlo) y falla si el módulo agrega, cambia
+   o quita un motivo.
 2. **Rango de validez.** `estimador.py` tiene el rango escrito en el código (`RANGO_ENTRENAMIENTO`). La fuente de
    verdad es `rango_entrenamiento_kg` de `config.json`: el dominio recalcula R-20 con ese rango
    (`VersionModelo.en_rango()`), sin depender del motivo que haya informado el módulo.
 3. **Imagen borrosa (R-24).** El módulo no la calcula. El adaptador mide la varianza del Laplaciano sobre el
-   `recorte` que devuelve el módulo; el umbral viene de configuración y no tiene valor por defecto hasta
-   calibrarlo (ver `errores.md`).
+   recorte del animal; el umbral viene de configuración y no tiene valor por defecto hasta calibrarlo (ver
+   `errores.md`). `recorte` **no es una imagen** sino una caja `[x0, y0, x1, y1]` en las coordenadas de la foto
+   **ya reducida** a `LADO_MAX`, y falta si no hay animal: el adaptador vuelve a decodificar la foto, la reduce
+   igual y corta con esa caja. Sin umbral configurado no se decodifica nada.
 4. **Concurrencia.** Los modelos de Ultralytics no son seguros si varios hilos comparten una misma instancia. El
    adaptador mantiene un **pool de N instancias** de `EstimadorPeso` (`HILOS_INFERENCIA`; unos 130 MB de modelos
-   cada una) y un `CapacityLimiter(N)`. Una instancia se toma del pool para cada inferencia y se devuelve al
-   terminar.
+   cada una). Una instancia se toma del pool para cada inferencia y se devuelve **desde el propio hilo, cuando
+   termina de verdad**. No se usa el `CapacityLimiter` de `anyio` para esto: con `abandon_on_cancel=True` lo
+   libera al cancelar la espera, no al terminar el hilo. `HILOS_INFERENCIA` vale por defecto los núcleos
+   disponibles **con tope de 4** (propuesto, hasta medir la RAM del servidor de homologación).
 5. **Umbrales de R-25.** `CONF_DETECCION_MIN` y `CONF_KEYPOINT_MIN` se importan de `estimador`, no se copian.
+6. **El adaptador no importa `estimador`** (arrastraría torch y ultralytics): recibe una fábrica de instancias y
+   `LADO_MAX`. El cableado de la app pasa `EstimadorPeso` y las constantes reales; los tests unitarios, un falso.
+
+#### Orientación EXIF: el adaptador no rota
+
+El entrenamiento (`bovinovision/`) abre las imágenes con `Image.open(...).convert("RGB")`, sin
+`ImageOps.exif_transpose`, y `EstimadorPeso` hace lo mismo. El adaptador pasa los bytes tal cual: rotar cambiaría lo
+que el modelo ve respecto de lo que aprendió. **Pendientes de medición** (no bloquean el adaptador):
+
+- Cuántas fotos del campo traen una etiqueta de orientación distinta de la normal. Una foto vertical de celular
+  con esa etiqueta llegaría de costado al modelo.
+- `bovinovision/29a_tapar_vara.py` usa `cv2.imread`, que sí aplica la orientación EXIF. Es preprocesamiento de otro
+  dataset y el camino de inferencia no lo usa, pero habría que confirmar si esas imágenes entraron rotadas al
+  entrenamiento.
 
 ### Cómo se instala `estimador/`
 `estimador/pyproject.toml` declara `[build-system]` (hatchling, solo `estimador.py`), así que el servicio lo toma
@@ -182,7 +204,7 @@ el trabajo. El servicio no las persiste más allá de eso.
 `anyio.fail_after` cancela la **espera**, pero el hilo de inferencia **sigue corriendo**: Python no puede matar un
 hilo. Por eso:
 
-- El `CapacityLimiter` del adaptador cuenta el hilo **hasta que termina de verdad**, no hasta el timeout.
+- El pool del adaptador cuenta el hilo **hasta que termina de verdad**, no hasta el timeout.
 - Un trabajo que se pasa de tiempo queda `fallido` (`tiempo_excedido`), pero su lugar en el pool sigue ocupado. El
   siguiente trabajo **espera ese lugar** (y esa espera cuenta en su propio presupuesto) en vez de arrancar otro
   hilo. Así no se acumulan hilos colgados.
@@ -210,7 +232,7 @@ Las lee `infraestructura/config.py` (`pydantic-settings`). Nunca se versionan: e
 | `HOSTS_CALLBACK_PERMITIDOS` | si se usa callback | vacío | Allowlist de hosts para `url_notificacion` (SSRF) |
 | `CARPETA_MODELOS` | no | `../estimador/modelos` | Dónde están los `.pt`, `config.json` y `SHA256SUMS.txt` |
 | `PRESUPUESTO_ESTIMACION_S` | no | `45` (propuesto) | Límite por trabajo (RNF-01) |
-| `HILOS_INFERENCIA` | no | núcleos disponibles | Tamaño del pool y del `CapacityLimiter` |
+| `HILOS_INFERENCIA` | no | núcleos disponibles, con tope de `4` (propuesto) | Cantidad de instancias del modelo y de hilos de inferencia. Cada instancia ocupa unos 130 MB |
 | `MAX_MB_IMAGEN` | no | `25` | Límite por imagen, en MB |
 | `MAX_PIXELES` | no | `100000000` (propuesto) | Límite de píxeles por imagen (ancho × alto). Protege de bombas de descompresión. Pillow corta por su cuenta cerca de los 178 MP, así que ese es el techo real |
 | `CARPETA_TEMPORAL` | no | `<carpeta temporal del sistema>/bv_estimacion` | Dónde se guardan en disco las imágenes subidas por multipart hasta que termina el trabajo |
@@ -232,4 +254,4 @@ coordenadas GPS.
 
 - Los uploads se leen por chunks y el límite de tamaño (25 MB por imagen) se valida **antes** de decodificar.
 - El `POST` encola de inmediato y no espera la inferencia.
-- Los hilos de inferencia se limitan a los núcleos disponibles.
+- Los hilos de inferencia se limitan a los núcleos disponibles, con tope de 4 por defecto.
