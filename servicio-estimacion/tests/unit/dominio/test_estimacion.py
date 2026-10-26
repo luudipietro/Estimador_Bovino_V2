@@ -54,6 +54,20 @@ def test_r21_un_resultado_no_confiable_siempre_dice_por_que() -> None:
 
 
 @pytest.mark.requisito("RF-20")
+@pytest.mark.parametrize(
+    "fotos",
+    [
+        [foto(150.0), foto(160.0)],  # confiables, dentro del rango
+        [foto(150.0, MotivoNoSe.IMAGEN_BORROSA), foto(None, MotivoNoSe.SIN_ANIMAL)],  # ninguna confiable
+        [foto(700.0), foto(710.0)],  # confiables pero la mediana cae fuera del rango (R-20)
+    ],
+)
+def test_el_agregado_conserva_el_resultado_de_cada_foto_en_el_orden_recibido(fotos: list[ResultadoFoto]) -> None:
+    """El contrato devuelve `imagenes[]` con el detalle de cada foto, no solo la mediana."""
+    assert agregar_resultados(fotos, VERSION).fotos == tuple(fotos)
+
+
+@pytest.mark.requisito("RF-20")
 def test_r22_una_sola_foto_confiable_da_su_peso() -> None:
     resultado = agregar_resultados([foto(187.4)], VERSION)
     assert resultado.peso_kg == 187.4

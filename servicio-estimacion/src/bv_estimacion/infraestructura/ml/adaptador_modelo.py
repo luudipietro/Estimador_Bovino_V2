@@ -72,6 +72,11 @@ class AdaptadorModelo:
     def cargado(self) -> bool:
         return self._pool is not None
 
+    @property
+    def instancias(self) -> int:
+        """Cuántas instancias hay cargadas (0 hasta que termina `cargar`)."""
+        return 0 if self._pool is None else self._pool.tamano
+
     async def cargar(self) -> None:
         """Crea las N instancias (lento: lee ~130 MB de pesos cada una) fuera del event loop."""
         if self._pool is not None:

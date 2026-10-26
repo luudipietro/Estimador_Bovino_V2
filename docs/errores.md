@@ -11,14 +11,15 @@ Hay tres clases de resultado y **no se mezclan**.
 |---|---|---|
 | `formato_no_admitido` | 415 | El tipo real del archivo (por *magic bytes*) no es JPEG, PNG ni HEIC |
 | `imagen_corrupta` | 422 | No se puede decodificar |
-| `imagen_muy_grande` | 413 | Supera 25 MB (`MAX_MB_IMAGEN`) **o el límite de píxeles configurado** (`MAX_PIXELES`), incluida una bomba de descompresión (`DecompressionBombError` de Pillow). No se agrega un código nuevo: sería un cambio de contrato |
+| `imagen_muy_grande` | 413 | Supera 25 MB (`MAX_MB_IMAGEN`), el tope del cuerpo del pedido (multipart; JSON de más de 64 KB) **o el límite de píxeles configurado** (`MAX_PIXELES`), incluida una bomba de descompresión (`DecompressionBombError` de Pillow). No se agrega un código nuevo: sería un cambio de contrato |
 | `resolucion_insuficiente` | 422 | Menos de 0,75 MP (`RESOLUCION_MINIMA_MP`, valor propuesto a confirmar con el equipo; `verificar_fotos.py` usa 3 MP) |
 | `cantidad_imagenes_invalida` | 422 | Menos de 1, más de 4, o imágenes y referencias en el mismo pedido |
 | `id_evento_en_conflicto` | 409 | Mismo `id_evento` con otra imagen |
 | `referencia_no_permitida` | 422 | URL de imagen o de callback fuera de la allowlist |
 | `no_autenticado` | 401 | Token ausente o inválido |
 | `trabajo_no_encontrado` | 404 | El `id` no existe o ya venció (`TTL_TRABAJOS_S`) |
-| `cola_llena` | 503 | Hay `TAMANO_COLA` trabajos esperando. Lleva `Retry-After`. *(propuesto, a confirmar)* |
+| `cola_llena` | 503 | Hay `TAMANO_COLA` trabajos esperando. Lleva `Retry-After` (5 s). *(propuesto, a confirmar)* |
+| `solicitud_invalida` | 400 | Pedido mal formado: falta `Idempotency-Key`, JSON roto, `metadatos` que no es un objeto, `sha256` o URL con mal formato o campo desconocido. Incluye `campos` con los nombres (no los valores). Es el código también de una ruta inexistente (404) o un método no permitido (405). *(propuesto, a confirmar)* |
 
 ## 2. El modelo no puede estimar con confianza: **no es un error**
 
@@ -52,4 +53,9 @@ Un animal **descentrado pero completo** es válido.
 ## Reglas de salida
 - Nunca se exponen trazas, rutas ni nombres de clases. El detalle va al log con `request_id` e `id_evento`.
 - Los 5xx y los trabajos `fallido` devuelven un `detalle` genérico y legible.
+- Todo error de la API sale como `application/problem+json` (RFC 9457) con `type`, `title`, `status`, `detail`,
+  `codigo`, `regla` (si aplica) y `request_id`; el mismo `request_id` va en el encabezado `X-Request-ID`.
+- Las fallas internas solo llegan a una respuesta HTTP desde un endpoint síncrono (`/v1/validaciones`):
+  `modelo_no_disponible` 503, `tiempo_excedido` 504, `referencia_inaccesible` 502 y `error_interno` 500. En un
+  trabajo asincrónico dejan el estado `fallido`, no un error HTTP.
 - Agregar un código nuevo es un cambio de contrato: ver `contrato-backend.md`.

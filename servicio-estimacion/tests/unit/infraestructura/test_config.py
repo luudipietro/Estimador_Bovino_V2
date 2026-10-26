@@ -13,7 +13,7 @@ VARIABLES = [
     "TOKEN_SERVICIO", "SECRETO_HMAC", "HOSTS_IMAGEN_PERMITIDOS", "HOSTS_CALLBACK_PERMITIDOS", "CARPETA_MODELOS",
     "PRESUPUESTO_ESTIMACION_S", "HILOS_INFERENCIA", "MAX_MB_IMAGEN", "MAX_PIXELES", "RESOLUCION_MINIMA_MP",
     "CARPETA_TEMPORAL", "TTL_IMAGENES_S", "UMBRAL_BORROSIDAD", "TTL_TRABAJOS_S", "TAMANO_COLA",
-    "INTENTOS_CALLBACK", "ESPERA_BASE_CALLBACK_S",
+    "INTENTOS_CALLBACK", "ESPERA_BASE_CALLBACK_S", "DOCS_HABILITADAS",
 ]  # fmt: skip
 
 
@@ -45,6 +45,7 @@ def test_los_valores_por_defecto_son_los_documentados(monkeypatch: pytest.Monkey
     assert cfg.hilos_inferencia >= 1
     assert cfg.hosts_imagen_permitidos == []
     assert cfg.hosts_callback_permitidos == []
+    assert cfg.docs_habilitadas is False  # /docs no tiene autenticación
 
 
 @pytest.mark.requisito("RNF-03")

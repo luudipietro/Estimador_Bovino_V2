@@ -52,13 +52,16 @@ Frontend web (React + Vite, offline) ──► Backend de negocio (C#) ──ada
 - `python ../estimador/descargar_modelos.py` — descarga y verifica los pesos. **Obligatorio la primera vez y tras
   cada cambio de versión del modelo.**
 - `uv run uvicorn bv_estimacion.api.main:create_app --factory --reload --port 8001` — **arranca el servidor en
-  local** (docs en `http://localhost:8001/docs`).
+  local** (docs en `http://localhost:8001/docs`; hay que arrancarlo con `DOCS_HABILITADAS=true`, por defecto está en
+  `false` y `/docs` y `/openapi.json` no existen).
 - `uv run pytest` — **tests unitarios y de API. Deben pasar antes de cada commit.** Excluye las marcas `modelo` y
   `rendimiento`.
 - `uv run pytest -m modelo` — tests con los pesos reales.
 - `uv run pytest --cov=bv_estimacion --cov-fail-under=90` — cobertura, antes del PR.
 - `uv run ruff check . && uv run ruff format --check . && uv run mypy src/bv_estimacion/dominio src/bv_estimacion/aplicacion`
   — **estilo y tipos, antes de cada PR.**
+- `uv run python scripts/exportar_openapi.py` — regenera `openapi.json`, el contrato que lee el equipo del adaptador
+  C#. Con `--comprobar` falla si el archivo está desactualizado (un test también lo verifica).
 - `uv run python scripts/carga_concurrente.py --url <url> --n 50` — rendimiento (RNF-01, RNF-03).
 - `uv run python scripts/evaluar_modelo.py --registros <csv> --fotos <carpeta>` — MAPE por animal y por banda
   contra el baseline de la mediana (RNF-02).

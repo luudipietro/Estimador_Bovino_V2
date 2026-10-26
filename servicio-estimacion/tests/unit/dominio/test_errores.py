@@ -24,7 +24,7 @@ CODIGOS_CONFIRMADOS = {
     "referencia_inaccesible",
     "error_interno",
 }
-CODIGOS_NO_CONFIRMADOS = {"trabajo_no_encontrado", "cola_llena"}
+CODIGOS_NO_CONFIRMADOS = {"trabajo_no_encontrado", "cola_llena", "solicitud_invalida"}
 MOTIVOS = {"sin_animal", "deteccion_dudosa", "partes_tapadas", "animal_cortado", "imagen_borrosa", "fuera_de_rango"}
 
 

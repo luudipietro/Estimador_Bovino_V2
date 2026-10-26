@@ -95,23 +95,36 @@ async def solicitar_estimacion(
     return TrabajoAceptado.model_validate(trabajo)
 ```
 
-**Arranque:** `lifespan`, hashes verificados y carga única.
+**Arranque:** `lifespan`, hashes verificados y modelo cargado **antes de aceptar tráfico**. Si algo falla, la app no
+arranca (el proceso sale con error). Es un resumen de `api/main.py`:
 ```python
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    cfg = Configuracion()
-    verificar_hashes_modelos(cfg.carpeta_modelos)          # si no coinciden, no arranca
-    app.state.modelo = AdaptadorModelo(cfg.carpeta_modelos, limite=cfg.hilos_inferencia)
-    yield
+    await to_thread.run_sync(verificar_hashes_modelos, cfg.carpeta_modelos)   # si no coinciden, no arranca
+    ficha = cargar_ficha_modelo(cfg.carpeta_modelos)                          # versión y rango (R-20, R-23)
+    await adaptador.cargar()                      # las N instancias; si una falla, no arranca
+    async with httpx.AsyncClient() as cliente, anyio.create_task_group() as grupo:
+        grupo.start_soon(ejecutor.correr)         # los workers, recién con el modelo cargado
+        grupo.start_soon(barrer_periodicamente, ...)
+        app.state.contenedor = Contenedor(...)
+        try:
+            yield
+        finally:
+            grupo.cancel_scope.cancel()           # apagado ordenado
 ```
 
 ## Integración del modelo
 
 - `infraestructura/ml/` envuelve `estimador.EstimadorPeso` e implementa el puerto `ModeloPeso`.
-- Se carga **una sola vez** en el `lifespan` y se guarda en `app.state`. `/salud` responde 503 hasta que esté listo.
+- Se carga **una sola vez** en el `lifespan`, **antes de aceptar tráfico**, y queda en `app.state.contenedor`. Si la
+  verificación de hashes o la carga fallan, la app **no arranca**: un servicio que acepta pedidos sin modelo solo los
+  fallaría después. Durante la carga el puerto todavía no responde; un healthcheck necesita un `start_period` acorde.
+  Por eso `/salud` no tiene un estado "cargando". Tiempo medido con los pesos de v1 en CPU, en la máquina de
+  desarrollo: 15,5 s con 1 instancia y 13,8 s con 4 (procesos nuevos, disco en caché) y 26 s la primera vez tras
+  descargar los pesos. En el servidor de homologación hay que volver a medirlo
+  (`pytest -m modelo tests/integracion/test_arranque_real.py -s`).
 - La inferencia corre en hilos (`anyio.to_thread`), una instancia del modelo por hilo (ver más abajo). Las `N`
-  instancias se cargan **todas** al arrancar; hasta que terminan, el adaptador expone `cargado = False` y `/salud`
-  responde 503.
+  instancias se cargan **todas** al arrancar, y los workers se lanzan recién cuando terminan.
 - Al arrancar se verifican los SHA-256 de los `.pt` (los de `descargar_modelos.py` / `SHA256SUMS.txt`). Si no
   coinciden, la app **no arranca**.
 - El rango de validez y la versión se leen de `config.json`.
@@ -247,6 +260,7 @@ Las lee `infraestructura/config.py` (`pydantic-settings`). Nunca se versionan: e
 | `UMBRAL_BORROSIDAD` | no | sin valor | Umbral de R-24. Sin valor, la regla queda **desactivada** |
 | `TTL_TRABAJOS_S` | no | `86400` (propuesto) | Cuánto se conserva un trabajo (ver `contrato-backend.md`) |
 | `TAMANO_COLA` | no | `200` (propuesto) | Trabajos que pueden esperar (ver `contrato-backend.md`) |
+| `DOCS_HABILITADAS` | no | `false` | Publica `/docs` y `/openapi.json`. **Sin autenticación**: solo para local. Con `false` esas rutas no existen |
 | `INTENTOS_CALLBACK` | no | `3` | Intentos **en total** para entregar el callback: el primero y dos reintentos |
 | `ESPERA_BASE_CALLBACK_S` | no | `1` | Espera tras el primer fallo. Crece al doble en cada reintento (1 s, 2 s) y no se espera después del último |
 
@@ -259,5 +273,13 @@ coordenadas GPS.
 ## Rendimiento
 
 - Los uploads se leen por chunks y el límite de tamaño (25 MB por imagen) se valida **antes** de decodificar.
+- **Tope del cuerpo, antes de parsearlo** (`api/limites.py`): un multipart admite `n × MAX_MB_IMAGEN` más 1 MiB de
+  margen (`n` = 4 en `/v1/estimaciones`, 1 en `/v1/validaciones`) y un JSON, 64 KB (propuesto). Si el pedido declara
+  `Content-Length` y se pasa, se rechaza sin leerlo (`413 imagen_muy_grande`, también para el JSON). Si no
+  lo declara (`Transfer-Encoding: chunked`), el tope se aplica **mientras se lee**: un encabezado solo no alcanza.
+- **Validación en el borde, antes de guardar nada** (`api/v1/entrada.py`): encabezado `Idempotency-Key`, forma del
+  pedido, cantidad de imágenes, allowlists de hosts y, por cada imagen, tamaño, formato real por *magic bytes*,
+  decodificabilidad, píxeles y resolución. Lo barato va primero: no se decodifica ninguna foto si el pedido ya está
+  mal. Un pedido con una imagen mala no deja ni trabajo ni archivos temporales.
 - El `POST` encola de inmediato y no espera la inferencia.
 - Los hilos de inferencia se limitan a los núcleos disponibles, con tope de 4 por defecto.
