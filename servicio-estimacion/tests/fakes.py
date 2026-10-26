@@ -56,6 +56,9 @@ class RepositorioEnMemoria:
         # Para simular una carrera: se ejecuta justo antes de `agregar`, como si otro pedido se hubiera colado.
         self.antes_de_agregar: Callable[[], None] | None = None
         self.error_al_eliminar: Exception | None = None
+        # Número de llamada a `guardar` (desde 1) -> error que lanza en esa llamada.
+        self.errores_al_guardar: dict[int, Exception] = {}
+        self._llamadas_a_guardar = 0
 
     def _registrar(self, evento: str) -> None:
         if self._bitacora is not None:
@@ -73,6 +76,10 @@ class RepositorioEnMemoria:
 
     async def guardar(self, trabajo: Trabajo) -> None:
         self._registrar("repo.guardar")
+        self._llamadas_a_guardar += 1
+        error = self.errores_al_guardar.get(self._llamadas_a_guardar)
+        if error is not None:
+            raise error
         self.trabajos[trabajo.id] = trabajo
 
     async def obtener(self, id_trabajo: IdTrabajo) -> Trabajo | None:
