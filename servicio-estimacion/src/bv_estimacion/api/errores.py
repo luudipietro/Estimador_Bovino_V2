@@ -59,6 +59,15 @@ TITULO: dict[CodigoError, str] = {
     CodigoError.ERROR_INTERNO: "Error interno",
 }
 
+
+class SolicitudInvalida(ErrorDeDominio):
+    """Un pedido mal formado (400). `campos` son los **nombres** de lo que está mal, nunca los valores recibidos."""
+
+    def __init__(self, detalle: str, campos: list[str] | None = None) -> None:
+        super().__init__(CodigoError.SOLICITUD_INVALIDA, detalle)
+        self.campos = [campo[:64] for campo in (campos or [])]  # un nombre de campo lo puso el cliente: se acota
+
+
 _DETALLE_HTTP = {404: "La ruta no existe.", 405: "Método no permitido para esta ruta."}
 
 
@@ -104,7 +113,8 @@ async def _error_de_dominio(request: Request, error: Exception) -> JSONResponse:
         detalle = DETALLE_DE_FALLA[error.codigo]
     else:
         detalle = error.detalle
-    return problema(request, error.codigo, detalle, regla=error.regla, cabeceras=cabeceras)
+    extra = {"campos": error.campos} if isinstance(error, SolicitudInvalida) and error.campos else None
+    return problema(request, error.codigo, detalle, regla=error.regla, cabeceras=cabeceras, extra=extra)
 
 
 async def _validacion(request: Request, error: Exception) -> JSONResponse:

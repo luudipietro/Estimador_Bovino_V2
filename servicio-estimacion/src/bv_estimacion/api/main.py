@@ -15,11 +15,12 @@ from fastapi import FastAPI
 
 from bv_estimacion.api.dependencias import Contenedor
 from bv_estimacion.api.errores import registrar_manejadores
+from bv_estimacion.api.limites import LimitarCuerpo
 from bv_estimacion.api.logs import CONTEXTO
 from bv_estimacion.api.logs import configurar_logs as _configurar_logs
 from bv_estimacion.api.middleware import ContextoDePeticion
 from bv_estimacion.api.v1.esquemas.trabajo import serializar_trabajo
-from bv_estimacion.api.v1.routers import modelo, salud
+from bv_estimacion.api.v1.routers import estimaciones, modelo, salud, validaciones
 from bv_estimacion.aplicacion.casos_uso.consultar_estimacion import ConsultarEstimacion
 from bv_estimacion.aplicacion.casos_uso.notificar_resultado import NotificarResultado
 from bv_estimacion.aplicacion.casos_uso.procesar_estimacion import ProcesarEstimacion
@@ -132,5 +133,8 @@ def create_app(
     registrar_manejadores(app)
     app.include_router(salud.router)
     app.include_router(modelo.router)
-    app.add_middleware(ContextoDePeticion)
+    app.include_router(estimaciones.router)
+    app.include_router(validaciones.router)
+    app.add_middleware(LimitarCuerpo, max_bytes_imagen=config.max_bytes_imagen)
+    app.add_middleware(ContextoDePeticion)  # el último que se agrega es el más externo
     return app

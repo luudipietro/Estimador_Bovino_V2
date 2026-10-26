@@ -270,5 +270,13 @@ coordenadas GPS.
 ## Rendimiento
 
 - Los uploads se leen por chunks y el límite de tamaño (25 MB por imagen) se valida **antes** de decodificar.
+- **Tope del cuerpo, antes de parsearlo** (`api/limites.py`): un multipart admite `n × MAX_MB_IMAGEN` más 1 MiB de
+  margen (`n` = 4 en `/v1/estimaciones`, 1 en `/v1/validaciones`) y un JSON, 64 KB (propuesto). Si el pedido declara
+  `Content-Length` y se pasa, se rechaza sin leerlo (`413 imagen_muy_grande`; el JSON, `400 solicitud_invalida`). Si no
+  lo declara (`Transfer-Encoding: chunked`), el tope se aplica **mientras se lee**: un encabezado solo no alcanza.
+- **Validación en el borde, antes de guardar nada** (`api/v1/entrada.py`): encabezado `Idempotency-Key`, forma del
+  pedido, cantidad de imágenes, allowlists de hosts y, por cada imagen, tamaño, formato real por *magic bytes*,
+  decodificabilidad, píxeles y resolución. Lo barato va primero: no se decodifica ninguna foto si el pedido ya está
+  mal. Un pedido con una imagen mala no deja ni trabajo ni archivos temporales.
 - El `POST` encola de inmediato y no espera la inferencia.
 - Los hilos de inferencia se limitan a los núcleos disponibles, con tope de 4 por defecto.
