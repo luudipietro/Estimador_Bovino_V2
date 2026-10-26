@@ -132,6 +132,14 @@ def test_una_bomba_de_descompresion_de_pillow_se_traduce_a_imagen_muy_grande(mon
     assert codigo_de(datos, max_pixeles=10**12) is CodigoError.IMAGEN_MUY_GRANDE
 
 
+@pytest.mark.requisito("RF-22")
+def test_el_limite_de_pillow_es_el_que_asume_la_documentacion() -> None:
+    """El servicio no toca `MAX_IMAGE_PIXELS`: depende del valor por defecto de Pillow, y `docs/arquitectura.md`
+    dice que corta cerca de los 178 MP (el doble de este límite). Si una actualización de Pillow lo cambia, este
+    test falla para que se revise la documentación y `MAX_PIXELES` en vez de moverse el techo sin que nadie lo note."""
+    assert Image.MAX_IMAGE_PIXELS == 89_478_485
+
+
 # --- Resolución (422) ---------------------------------------------------------------------------
 
 

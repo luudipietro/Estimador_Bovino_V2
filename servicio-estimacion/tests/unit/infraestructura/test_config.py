@@ -96,6 +96,13 @@ def test_el_callback_se_configura_por_entorno(monkeypatch: pytest.MonkeyPatch) -
     assert (cfg.intentos_callback, cfg.espera_base_callback_s) == (5, 0.5)
 
 
+@pytest.mark.requisito("RF-19")
+def test_los_ttl_de_trabajos_e_imagenes_se_leen_del_entorno(monkeypatch: pytest.MonkeyPatch) -> None:
+    cfg = configuracion(monkeypatch, TTL_TRABAJOS_S="7200", TTL_IMAGENES_S="900")
+    assert cfg.ttl_trabajos_s == 7200
+    assert cfg.ttl_imagenes_s == 900
+
+
 @pytest.mark.requisito("RF-21")
 @pytest.mark.parametrize("variable", ["INTENTOS_CALLBACK", "TAMANO_COLA", "HILOS_INFERENCIA", "MAX_MB_IMAGEN"])
 def test_los_enteros_no_aceptan_cero(monkeypatch: pytest.MonkeyPatch, variable: str) -> None:
