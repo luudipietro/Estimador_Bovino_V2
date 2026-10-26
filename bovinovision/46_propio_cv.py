@@ -259,13 +259,15 @@ def main():
               f"mejor época {ep} (MAPE val {mejor:.1f}%) | MAPE test fotos {metrics.mape(t.peso_kg, t.pred):.1f}% | {time.time() - t0:.0f}s",
               flush=True)
         del modelo
-    oof = pd.concat(filas, ignore_index=True)
-    oof.to_csv(salida / "oof_fotos.csv", index=False)
-    r = resumir(oof, salida, nombre)
-    print(f"\n=== {nombre} | {r['animales']} animales (OOF) ===")
-    print(f"MAPE modelo {r['mape_modelo']:.2f}% | mediana {r['mape_mediana']:.2f}% | mejora {r['mejora_puntos']:+.2f} puntos "
-          f"(IC95 {r['mejora_ic95'][0]:+.2f} a {r['mejora_ic95'][1]:+.2f}) | Spearman {r['spearman']:+.2f} | "
-          f"predice {r['pred_min']:.0f}-{r['pred_max']:.0f} kg | sesgo {r['sesgo_pct']:+.1f}%")
+    r = {"mape_modelo": None, "mape_mediana": None}
+    if filas:
+        oof = pd.concat(filas, ignore_index=True)
+        oof.to_csv(salida / "oof_fotos.csv", index=False)
+        r = resumir(oof, salida, nombre)
+        print(f"\n=== {nombre} | {r['animales']} animales (OOF) ===")
+        print(f"MAPE modelo {r['mape_modelo']:.2f}% | mediana {r['mape_mediana']:.2f}% | mejora {r['mejora_puntos']:+.2f} puntos "
+              f"(IC95 {r['mejora_ic95'][0]:+.2f} a {r['mejora_ic95'][1]:+.2f}) | Spearman {r['spearman']:+.2f} | "
+              f"predice {r['pred_min']:.0f}-{r['pred_max']:.0f} kg | sesgo {r['sesgo_pct']:+.1f}%")
 
     if a.final:
         an_va, an_ent = separar_validacion(animales, config.SEED, cada=10)
