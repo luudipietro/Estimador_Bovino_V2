@@ -36,6 +36,9 @@ class ProcesarEstimacion:
       el trabajo queda `fallido` con `tiempo_excedido`. La espera por un lugar en el pool del modelo también
       cuenta: si un hilo quedó colgado de un trabajo anterior (ver el contrato de `ModeloPeso.estimar`), los
       siguientes pueden vencer esperándolo.
+    - **Un fallo fuera de la estimación (por ejemplo, al guardar)** deja el trabajo `fallido` con `error_interno`.
+      Es un mejor esfuerzo: si el repositorio sigue sin responder, el segundo guardado también falla y solo se
+      registra. Un trabajo cancelado por el apagado queda como estaba.
     - **El aviso al backend va después** de guardar el estado final y **fuera del presupuesto**.
     - **Las imágenes temporales se borran siempre**, sea cual sea el final, incluso si el worker se cancela.
     """
@@ -69,15 +72,26 @@ class ProcesarEstimacion:
             return
 
         trabajo = trabajo.iniciar(self._reloj.ahora())
-        await self._trabajos.guardar(trabajo)
 
         try:
-            final = await self._resolver(trabajo)
-        finally:
-            with anyio.CancelScope(shield=True):  # que se borren aunque nos estén cancelando
-                await self._borrar_temporales(trabajo.imagenes)
+            try:
+                await self._trabajos.guardar(trabajo)
+                final = await self._resolver(trabajo)
+            finally:
+                with anyio.CancelScope(shield=True):  # que se borren aunque nos estén cancelando
+                    await self._borrar_temporales(trabajo.imagenes)
+            await self._trabajos.guardar(final)
+        except Exception:
+            # Falló algo fuera de la estimación (típicamente el repositorio). Se intenta que el trabajo no quede
+            # `procesando` para siempre; si el repositorio sigue caído, no hay nada más que hacer acá.
+            logger.exception("error_al_procesar", extra={"id_trabajo": str(id_trabajo)})
+            final = self._fallar(trabajo, CodigoError.ERROR_INTERNO, reintentable=False)
+            try:
+                await self._trabajos.guardar(final)
+            except Exception:
+                logger.exception("no_se_pudo_marcar_fallido", extra={"id_trabajo": str(id_trabajo)})
+                return
 
-        await self._trabajos.guardar(final)
         logger.info(
             "trabajo_finalizado",
             extra={"id_trabajo": str(final.id), "id_evento": str(final.id_evento), "estado": final.estado.value},
