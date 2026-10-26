@@ -307,7 +307,10 @@ al pipeline de producción, pero **no borrarlos**: son la evidencia del experime
 justifica por qué se eligió el camino de keypoints (útil para la defensa si preguntan
 por qué no se usó el enfoque más simple).
 
-### Estado al 15/09/2026 — qué falta
+   ### (HISTÓRICO, reemplazado el 25/09/2026) Estado al 15/09/2026 — qué falta
+
+   > Esta lista asume el marcador de referencia, que se eliminó del diseño. No es vigente.
+   > Ver el recuadro de estado actual al inicio de este archivo.
 
 - [x] Pipeline completo corriendo end-to-end sobre el dataset de Mendeley
 - [x] Segmentación: vista lateral 72/72 (100%), vista trasera 14/72 (19%, no se usa)
