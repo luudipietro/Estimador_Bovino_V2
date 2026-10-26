@@ -84,14 +84,14 @@ async def test_cuatro_imagenes_normales_entran_dentro_del_tope(tmp_path: Path) -
 
 
 @pytest.mark.requisito("RF-19")
-async def test_un_json_de_mas_de_64_kb_es_solicitud_invalida(tmp_path: Path) -> None:
+async def test_un_json_de_mas_de_64_kb_es_imagen_muy_grande(tmp_path: Path) -> None:
     relleno = "x" * (LIMITE_JSON + 1)
     async with servicio(tmp_path) as (_, cliente):
         respuesta = await cliente.post(
             RUTA, headers=encabezados(), json={"referencias_imagen": [], "metadatos": {"nota": relleno}}
         )
-    assert respuesta.status_code == 400
-    assert respuesta.json()["codigo"] == "solicitud_invalida"
+    assert respuesta.status_code == 413
+    assert respuesta.json()["codigo"] == "imagen_muy_grande"
 
 
 @pytest.mark.requisito("RF-19")
@@ -109,8 +109,8 @@ async def test_un_json_de_mas_de_64_kb_sin_content_length_tambien_se_corta(tmp_p
         assert "content-length" not in pedido.headers
         respuesta = await cliente.send(pedido)
 
-    assert respuesta.status_code == 400
-    assert respuesta.json()["codigo"] == "solicitud_invalida"
+    assert respuesta.status_code == 413
+    assert respuesta.json()["codigo"] == "imagen_muy_grande"
 
 
 @pytest.mark.requisito("RF-19")

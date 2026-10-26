@@ -648,18 +648,11 @@
             "description": "El `id_evento`",
             "in": "header",
             "name": "Idempotency-Key",
-            "required": false,
+            "required": true,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "El `id_evento`",
-              "title": "Idempotency-Key"
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
             }
           }
         ],

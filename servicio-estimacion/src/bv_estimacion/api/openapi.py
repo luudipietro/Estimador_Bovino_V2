@@ -73,6 +73,12 @@ def _personalizar(esquema: dict[str, Any]) -> None:
 
     for ruta, operaciones in esquema["paths"].items():
         for metodo, operacion in operaciones.items():
+            for parametro in operacion.get("parameters", []):
+                if parametro.get("in") == "header" and parametro.get("name") == "Idempotency-Key":
+                    # El código lo valida a mano (para devolver `solicitud_invalida` con `campos`), así que FastAPI
+                    # lo ve opcional; para quien genera un cliente desde el esquema es obligatorio.
+                    parametro["required"] = True
+                    parametro["schema"] = {"type": "string", "minLength": 1, "maxLength": 128}
             respuestas = operacion.setdefault("responses", {})
             respuestas.pop("422", None)  # el que agrega FastAPI; el 422 real de cada ruta se documenta abajo
             if ruta == "/salud":

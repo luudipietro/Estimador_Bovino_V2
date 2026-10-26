@@ -99,8 +99,9 @@ def test_el_post_de_estimaciones_documenta_202_200_y_las_dos_formas_del_cuerpo(e
     operacion = esquema["paths"]["/v1/estimaciones"]["post"]  # type: ignore[index]
     assert {"200", "202", "400", "409", "413", "415", "422", "503"} <= set(operacion["responses"])
     assert set(operacion["requestBody"]["content"]) == {"multipart/form-data", "application/json"}
-    encabezados = [p["name"] for p in operacion["parameters"] if p["in"] == "header"]
-    assert "Idempotency-Key" in encabezados
+    clave = next(p for p in operacion["parameters"] if p["in"] == "header" and p["name"] == "Idempotency-Key")
+    assert clave["required"] is True
+    assert clave["schema"]["type"] == "string"
 
 
 @pytest.mark.requisito("RF-19")

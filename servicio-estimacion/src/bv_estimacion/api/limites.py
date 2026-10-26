@@ -43,7 +43,7 @@ class LimitarCuerpo:
             codigo, detalle = CodigoError.IMAGEN_MUY_GRANDE, "El pedido supera el tamaño máximo permitido."
         else:
             limite = MAX_JSON_BYTES
-            codigo, detalle = CodigoError.SOLICITUD_INVALIDA, "El cuerpo del pedido supera los 64 KB."
+            codigo, detalle = CodigoError.IMAGEN_MUY_GRANDE, "El cuerpo del pedido supera los 64 KB."
 
         declarado = encabezados.get("content-length", "")
         if declarado.isdigit() and int(declarado) > limite:

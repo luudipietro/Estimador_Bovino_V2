@@ -65,7 +65,8 @@ trabajo nuevo es 202) con el mismo `Location` y el cuerpo `{id, id_evento, estad
 estado actual. Así el backend distingue "lo creé ahora" de "ya existía" sin consultar.
 
 Tope del cuerpo (*propuesto*), medido sin leer el pedido completo:
-- **JSON:** 64 KB. Si lo supera: `400 solicitud_invalida`.
+- **JSON:** 64 KB. Si lo supera: `413 imagen_muy_grande` (el mismo código y la misma forma de rechazo que el
+  multipart; el `detail` dice que es el cuerpo). No se agrega un código nuevo.
 - **Multipart:** `4 × MAX_MB_IMAGEN` más 1 MiB de margen para los demás campos. Si lo supera: `413 imagen_muy_grande`.
   Se rechaza **antes de leer el cuerpo** cuando el pedido declara `Content-Length` mayor que el tope, y además se
   corta durante la lectura apenas lo acumulado lo supera, lo que cubre `Transfer-Encoding: chunked` y un
@@ -88,7 +89,7 @@ tiene por qué resolver). Ejemplo:
 
 El pedido está mal formado y no llega a evaluarse el contenido: falta o es inválido `Idempotency-Key`; el `Content-Type`
 no es multipart ni JSON; JSON roto o que no es un objeto; `metadatos` que no es un objeto JSON; un campo desconocido;
-`sha256` que no son 64 hexadecimales; `url` vacía o de más de 2048 caracteres; un JSON de más de 64 KB. Además lleva
+`sha256` que no son 64 hexadecimales; `url` vacía o de más de 2048 caracteres. Además lleva
 un campo propio, **`campos`**: lista de strings con los **nombres** de lo que está mal (nunca los valores recibidos,
 que pueden ser URLs firmadas o datos del cliente), cada uno acotado a 64 caracteres.
 ```json

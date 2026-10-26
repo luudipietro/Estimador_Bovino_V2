@@ -275,7 +275,7 @@ coordenadas GPS.
 - Los uploads se leen por chunks y el límite de tamaño (25 MB por imagen) se valida **antes** de decodificar.
 - **Tope del cuerpo, antes de parsearlo** (`api/limites.py`): un multipart admite `n × MAX_MB_IMAGEN` más 1 MiB de
   margen (`n` = 4 en `/v1/estimaciones`, 1 en `/v1/validaciones`) y un JSON, 64 KB (propuesto). Si el pedido declara
-  `Content-Length` y se pasa, se rechaza sin leerlo (`413 imagen_muy_grande`; el JSON, `400 solicitud_invalida`). Si no
+  `Content-Length` y se pasa, se rechaza sin leerlo (`413 imagen_muy_grande`, también para el JSON). Si no
   lo declara (`Transfer-Encoding: chunked`), el tope se aplica **mientras se lee**: un encabezado solo no alcanza.
 - **Validación en el borde, antes de guardar nada** (`api/v1/entrada.py`): encabezado `Idempotency-Key`, forma del
   pedido, cantidad de imágenes, allowlists de hosts y, por cada imagen, tamaño, formato real por *magic bytes*,
