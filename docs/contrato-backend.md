@@ -123,11 +123,24 @@ Valores **propuestos**, a confirmar con el equipo (el TP8 no los define):
   trabajo original con sus índices originales; el segundo orden se ignora.
 
 ## Callback (si se envió `url_notificacion`)
-- `POST` a un host de la allowlist con el mismo cuerpo que `GET /v1/estimaciones/{id}`.
-- Firma en `X-BV-Firma: sha256=<HMAC del cuerpo>` con un secreto compartido, más `X-BV-Timestamp` para evitar
-  replay.
-- Ante un fallo se reintenta con backoff (3 intentos). Si igual falla, **el resultado sigue disponible por `GET`**:
-  el backend nunca depende solo del callback.
+- `POST` a un host de la allowlist (`https`, sin credenciales en la URL) con `Content-Type: application/json` y el
+  mismo cuerpo que `GET /v1/estimaciones/{id}`.
+- **Firma:** `X-BV-Firma: sha256=<hex>`, donde `<hex>` es el HMAC-SHA256, con el secreto compartido
+  (`SECRETO_HMAC`), del texto `"<timestamp>" + "." + "<cuerpo exacto, en bytes>"`.
+- **`X-BV-Timestamp`:** segundos Unix (UTC) en que se firmó, como texto. **Está dentro de lo firmado**: si solo se
+  firmara el cuerpo, un callback capturado podría reenviarse con un timestamp nuevo y la firma seguiría valiendo.
+  Se recalcula en cada reintento.
+- **Lo que tiene que hacer el receptor (backend C#):** recalcular el HMAC sobre `<timestamp>.<cuerpo>` con los
+  bytes recibidos (sin reserializar el JSON), compararlo **en tiempo constante** y rechazar timestamps fuera de una
+  ventana (se sugiere ±5 minutos, a confirmar con quien implemente el adaptador). Como un reintento puede entregar
+  dos veces el mismo resultado, además conviene deduplicar por `id_evento`.
+- **Se considera entregado** con cualquier respuesta `2xx`. El servicio **no sigue redirecciones**: reenviaría el
+  cuerpo firmado a otro host.
+- Ante un fallo (no `2xx`, timeout o error de conexión) se reintenta con backoff exponencial: `INTENTOS_CALLBACK`
+  intentos en total (3) con esperas de `ESPERA_BASE_CALLBACK_S` (1 s y 2 s). Si igual falla, **el resultado sigue
+  disponible por `GET`**: el backend nunca depende solo del callback.
+- El envío corre en una tarea aparte, después de guardar el estado final: no retrasa la cola ni cuenta dentro del
+  presupuesto de tiempo.
 
 ## Presupuesto de tiempo (RNF-01)
 Cada trabajo tiene un límite configurable (`PRESUPUESTO_ESTIMACION_S`, propuesto 45 s) para dejar margen al
