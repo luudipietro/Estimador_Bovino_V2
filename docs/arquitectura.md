@@ -216,6 +216,8 @@ Las lee `infraestructura/config.py` (`pydantic-settings`). Nunca se versionan: e
 | `UMBRAL_BORROSIDAD` | no | sin valor | Umbral de R-24. Sin valor, la regla queda **desactivada** |
 | `TTL_TRABAJOS_S` | no | `86400` (propuesto) | Cuánto se conserva un trabajo (ver `contrato-backend.md`) |
 | `TAMANO_COLA` | no | `200` (propuesto) | Trabajos que pueden esperar (ver `contrato-backend.md`) |
+| `INTENTOS_CALLBACK` | no | `3` | Intentos **en total** para entregar el callback: el primero y dos reintentos |
+| `ESPERA_BASE_CALLBACK_S` | no | `1` | Espera tras el primer fallo. Crece al doble en cada reintento (1 s, 2 s) y no se espera después del último |
 
 ## Logs
 
