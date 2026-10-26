@@ -13,6 +13,7 @@ dependencies = [
     "matplotlib",
     "openpyxl",
     "pytest",
+    "pillow-heif>=1.8.1",
 ]
 
 # Elegir UNO:  uv sync --extra cpu   (Windows / sin GPU)   |   uv sync --extra rocm   (Fedora, AMD)

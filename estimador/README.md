@@ -72,6 +72,21 @@ curl -F "foto=@vaca.jpg" http://localhost:8000/estimar
 Hay documentación interactiva para probar desde el navegador en `http://localhost:8000/docs`, y un endpoint
 `/salud` para monitoreo.
 
+## Probar con fotos de vacas (`probar.py`)
+
+Un solo archivo, sin la API ni el backend. Compara el modelo `v1` (Bangladesh, carpeta `modelos/`) con el `v2`
+(ajustado con el dataset propio, carpeta `modelos_v2/`) si están las dos.
+
+```bash
+.venv\Scripts\python probar.py --web                       # página local: arrastrás fotos y ves el peso
+.venv\Scripts\python probar.py vaca1.jpg vaca2.jpg         # por consola
+.venv\Scripts\python probar.py --carpeta fotos --pesos pesos.csv   # evalúa contra pesos reales
+```
+
+`pesos.csv` lleva `foto,peso_kg` (y opcionalmente `animal`). Imprime el MAPE del modelo junto al de predecir siempre
+la mediana: en un grupo de pesos parejos esa referencia ya da 8-9 %, así que un MAPE parecido no es una mejora.
+Si las fotos son HEIC hace falta `pillow-heif`.
+
 ## Cómo funciona
 
 1. La foto se reduce a 1024 px de lado mayor.
