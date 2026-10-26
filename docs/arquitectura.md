@@ -160,6 +160,43 @@ estimador-peso-bovino = { path = "../estimador" }
 Los `.pt` no viajan en el paquete: se descargan con `python ../estimador/descargar_modelos.py` y se apunta a la
 carpeta con `CARPETA_MODELOS`.
 
+## Imágenes temporales y orden de `SolicitarEstimacion`
+
+Las imágenes subidas por multipart viven en el puerto `AlmacenTemporalImagenes` desde el `POST` hasta que termina
+el trabajo. El servicio no las persiste más allá de eso.
+
+- **Orden fijo:** buscar existente → chequear cola → guardar imágenes → guardar trabajo → **encolar al final**.
+  Las imágenes se guardan **antes** de responder 202.
+- **Cola llena:** se rechaza (`cola_llena`) **antes de persistir**; no se guarda ni el trabajo ni la imagen. Si la
+  cola se llena justo al encolar, o encolar falla por cualquier causa, se **revierte** lo guardado: no quedan
+  trabajos huérfanos.
+- **Se borran al terminar** el trabajo, sea `completado` o `fallido`, incluso si el worker se cancela.
+- **TTL de respaldo (obligatorio en la implementación):** si el proceso se cae a mitad de camino y nadie las borra,
+  el almacén las expira solas. Una imagen que ya no está se traduce a `fallido` con `referencia_inaccesible`, no a
+  un error interno.
+- **Verificación de contenido:** al leer una imagen (del almacén o de una URL) se compara su SHA-256 con el
+  declarado. Si no coincide, `referencia_inaccesible`.
+
+## El timeout no mata el hilo del modelo
+
+`anyio.fail_after` cancela la **espera**, pero el hilo de inferencia **sigue corriendo**: Python no puede matar un
+hilo. Por eso:
+
+- El `CapacityLimiter` del adaptador cuenta el hilo **hasta que termina de verdad**, no hasta el timeout.
+- Un trabajo que se pasa de tiempo queda `fallido` (`tiempo_excedido`), pero su lugar en el pool sigue ocupado. El
+  siguiente trabajo **espera ese lugar** (y esa espera cuenta en su propio presupuesto) en vez de arrancar otro
+  hilo. Así no se acumulan hilos colgados.
+- Los casos de uso asumen este contrato (ver `ModeloPeso.estimar`) y no limitan ellos la concurrencia. La Fase 2
+  lo prueba con un modelo falso que simula el pool; la Fase 3 lo prueba con hilos reales.
+
+## Aviso al backend (callback)
+
+`ProcesarEstimacion` guarda el estado final y **después** llama a `Notificador.notificar`, que agenda el envío y
+vuelve enseguida. El envío con reintentos (`NotificarResultado`: 3 intentos, backoff exponencial) corre en una tarea
+aparte: no ocupa el lugar del modelo, no retrasa la cola y no cuenta dentro del presupuesto de 45 s. Si el callback
+falla, **el estado del trabajo no cambia** y el resultado sigue disponible por `GET`. El log registra el
+`id_evento` y el número de intento.
+
 ## Variables de entorno
 
 Las lee `infraestructura/config.py` (`pydantic-settings`). Nunca se versionan: el repo solo trae
