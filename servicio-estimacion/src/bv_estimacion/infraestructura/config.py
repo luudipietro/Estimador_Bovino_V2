@@ -11,9 +11,13 @@ from typing import Annotated
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
+# Cada hilo tiene su propia instancia del modelo (~130 MB): "todos los núcleos" puede agotar la RAM del servidor.
+# Propuesto hasta medir la RAM del servidor de homologación. Quien lo pida explícito puede pasarlo.
+MAX_HILOS_POR_DEFECTO = 4
+
 
 def _hilos_por_defecto() -> int:
-    return os.cpu_count() or 1
+    return min(os.cpu_count() or 1, MAX_HILOS_POR_DEFECTO)
 
 
 def _carpeta_temporal_por_defecto() -> Path:

@@ -42,6 +42,22 @@ def test_los_valores_por_defecto_son_los_documentados(monkeypatch: pytest.Monkey
     assert cfg.hosts_callback_permitidos == []
 
 
+@pytest.mark.requisito("RNF-03")
+@pytest.mark.parametrize(("nucleos", "esperado"), [(64, 4), (4, 4), (2, 2), (1, 1), (None, 1)])
+def test_por_defecto_los_hilos_son_los_nucleos_con_tope_de_4(
+    monkeypatch: pytest.MonkeyPatch, nucleos: int | None, esperado: int
+) -> None:
+    """Cada hilo carga su propia copia del modelo (~130 MB): sin tope, un servidor de 64 núcleos cargaría 8 GB."""
+    monkeypatch.setattr("bv_estimacion.infraestructura.config.os.cpu_count", lambda: nucleos)
+    assert configuracion(monkeypatch).hilos_inferencia == esperado
+
+
+@pytest.mark.requisito("RNF-03")
+def test_el_tope_de_hilos_es_solo_el_valor_por_defecto_y_se_puede_pedir_mas(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("bv_estimacion.infraestructura.config.os.cpu_count", lambda: 64)
+    assert configuracion(monkeypatch, HILOS_INFERENCIA="8").hilos_inferencia == 8
+
+
 @pytest.mark.requisito("RF-21")
 def test_el_token_y_el_secreto_son_obligatorios(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(ValidationError):
