@@ -24,6 +24,7 @@ Proyecto Final de Ingeniería en Sistemas (UTN-FRT). Trabajo práctico grupal, c
 > | `RECOLECCION_DATASET.md` | qué pedirle al campo para armar el dataset propio |
 > | `estimador/README.md` | el módulo/API desplegable |
 > | `verificar_fotos.py` | revisa que las fotos del campo conserven la metadata |
+> | `dataset_propio/README.md` | **dataset propio v1 (campo 8/10 y 22/10)**: 141 animales, 221 fotos curadas, 292–485 kg, solo hembras. Cómo se armó y limitaciones (la mediana sola da 8,3 % de MAPE ahí) |
 >
 > **Impacto en los TP** (pendiente de volcar a los documentos):
 > - **TP2/alcance**: ya no hay marcador físico; la captura es una sola foto lateral, sin vista trasera.
