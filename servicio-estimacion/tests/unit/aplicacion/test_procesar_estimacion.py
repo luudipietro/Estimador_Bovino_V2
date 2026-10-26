@@ -397,3 +397,54 @@ async def test_el_timeout_no_libera_el_lugar_del_modelo_y_no_se_acumulan_hilos_c
     await caso.ejecutar(tercero)  # ahora el lugar está libre
     assert repo.trabajos[tercero].estado is EstadoTrabajo.COMPLETADO
     assert modelo.maximo_de_hilos_activos == 1
+
+
+# --- Fallos fuera de la estimación (el repositorio) ---------------------------------------------
+# Llamadas a `guardar` en un trabajo normal: 1 = pasa a `procesando`, 2 = estado final, 3 = (si hizo falta) `fallido`.
+
+
+@pytest.mark.requisito("RF-22")
+async def test_si_falla_el_guardado_del_estado_final_el_trabajo_queda_fallido_con_error_interno(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    ctx = armar()
+    ctx.repo.errores_al_guardar[2] = RuntimeError("detalle interno del repositorio")
+
+    with caplog.at_level(logging.ERROR):
+        trabajo = await procesar(ctx, b"foto-1")
+
+    assert trabajo.estado is EstadoTrabajo.FALLIDO
+    assert trabajo.codigo_error is CodigoError.ERROR_INTERNO
+    assert not trabajo.reintentable
+    assert [t.id for t in ctx.notificador.notificados] == [trabajo.id]
+    assert "error_al_procesar" in caplog.text
+
+
+@pytest.mark.requisito("RF-22")
+async def test_si_falla_el_guardado_de_procesando_el_trabajo_tambien_queda_fallido_y_se_borran_las_imagenes() -> None:
+    ctx = armar()
+    ctx.repo.errores_al_guardar[1] = RuntimeError("repositorio caído un instante")
+    id_trabajo = await preparar(ctx, b"foto-1")
+
+    await ctx.caso.ejecutar(id_trabajo)
+
+    trabajo = ctx.repo.trabajos[id_trabajo]
+    assert trabajo.estado is EstadoTrabajo.FALLIDO
+    assert trabajo.codigo_error is CodigoError.ERROR_INTERNO
+    assert ctx.almacen.objetos == {}
+
+
+@pytest.mark.requisito("RF-22")
+async def test_si_el_repositorio_sigue_caido_no_se_lanza_nada_ni_se_notifica(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    ctx = armar()
+    ctx.repo.errores_al_guardar.update({2: RuntimeError("caído"), 3: RuntimeError("sigue caído")})
+    id_trabajo = await preparar(ctx, b"foto-1")
+
+    with caplog.at_level(logging.ERROR):
+        await ctx.caso.ejecutar(id_trabajo)  # no lanza
+
+    assert ctx.repo.trabajos[id_trabajo].estado is EstadoTrabajo.PROCESANDO  # lo único que quedó guardado
+    assert ctx.notificador.notificados == []
+    assert "no_se_pudo_marcar_fallido" in caplog.text
