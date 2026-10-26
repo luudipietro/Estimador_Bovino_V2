@@ -140,3 +140,10 @@ No hay que copiar nada: al reiniciar a Windows, `runs/pose/pose9/weights/best.pt
 y `data/tablas/depth_*.parquet` ya están en `D:\claude_code\estimador_peso_bovino\bovinovision\`, porque es la misma
 partición. Con eso las etapas siguientes (`08_features_2d.py --kp keypoints_pred`, baselines, gate de profundidad)
 corren en Windows sin GPU.
+
+##Correr Propio
+export HSA_OVERRIDE_GFX_VERSION=10.3.0
+export HSA_OVERRIDE_GFX_VERSION=10.3.0
+uv run --extra rocm python 46_propio_cv.py --solo-fold 0 --epocas 2 --nombre prueba_gpu
+bash correr_propio_cv.sh 2>&1 | tee runs/propio_cv.log
+uv run python 47_propio_resumen_cv.py

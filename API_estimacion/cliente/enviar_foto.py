@@ -27,8 +27,8 @@ CALIDAD_JPEG = 90
 def preparar_foto(ruta: str | Path, formato: str = "jpeg") -> bytes:
     """Foto original -> bytes listos para enviar. `formato`: "jpeg" (~270 KB) o "png" (~1,3 MB, sin pérdida).
 
-    La compresión JPEG agrega ruido al peso estimado: medido sobre 24 fotos reales, 2-3% en promedio y hasta ~9%
-    en el peor caso, y no mejora subiendo la calidad. PNG da exactamente el mismo resultado que el módulo."""
+    La compresión JPEG agrega ruido al peso estimado: medido sobre ~30 fotos reales, ~2,5% en promedio y hasta ~15%
+    en algunas, sin mejorar al subir la calidad. PNG da exactamente el mismo resultado que el módulo."""
     im = ImageOps.exif_transpose(Image.open(ruta)).convert("RGB")
     f = LADO_MAX_PX / max(im.size)
     if f < 1:

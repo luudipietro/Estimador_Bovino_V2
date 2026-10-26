@@ -20,9 +20,10 @@ from enviar_foto import enviar, preparar_foto  # noqa: E402
 from estimador import EstimadorPeso  # noqa: E402
 
 # El achicado del cliente es idéntico al interno del módulo; lo único que cambia es la recompresión JPEG. Medido sobre
-# 24 fotos reales: desvío medio ≈2.4%, máximo ≈9%, sin mejora al subir la calidad (con --formato png es exactamente 0).
-# La tolerancia no exige igualdad: detecta divergencias groseras (orientación, formato, resolución mal aplicados).
-TOLERANCIA_REL = 0.12
+# ~30 fotos reales: desvío medio ≈2.5%, con casos de hasta ≈15%, sin mejora al subir la calidad JPEG.
+# Con --formato png (sin pérdida) la API debe coincidir exactamente con el módulo.
+# Con JPEG la tolerancia no exige igualdad: detecta divergencias groseras (orientación, formato, resolución mal aplicados).
+TOLERANCIA_REL = {"png": 0.005, "jpeg": 0.20}
 
 
 def main():
@@ -49,8 +50,9 @@ def main():
         peor = max(peor, dif / p0)
         print(f"{Path(f).name:<34}{p0:>12.1f}{p1:>10.1f}{dif:>8.1f}"
               f"{Path(f).stat().st_size / 1024:>9.0f}{len(jpeg) / 1024:>8.0f}")
-    print(f"\ndiferencia relativa máxima: {peor:.1%} (tolerancia {TOLERANCIA_REL:.0%})")
-    sys.exit(0 if peor <= TOLERANCIA_REL else 1)
+    tol = TOLERANCIA_REL[a.formato]
+    print(f"\ndiferencia relativa máxima: {peor:.1%} (tolerancia {tol:.1%} para {a.formato})")
+    sys.exit(0 if peor <= tol else 1)
 
 
 if __name__ == "__main__":

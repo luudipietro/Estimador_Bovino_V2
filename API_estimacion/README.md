@@ -36,12 +36,27 @@ Otro puerto: `PUERTO=9000 docker compose -f API_estimacion/docker-compose.yml up
 
 1. Aplicar la orientación EXIF a los píxeles. Al reducir se pierde el tag y el servidor ya no puede corregirla.
 2. Reducir a **1024 px de lado mayor**, conservando la relación de aspecto (nunca agrandar).
-3. Codificar JPEG calidad ~90. La foto pasa de varios MB a ~150–300 KB.
+3. Codificar JPEG calidad ~90. La foto pasa de varios MB a ~150–300 KB. (PNG también se acepta: ver la nota de abajo.)
 
 > **¿Por qué 1024 y no menos?** El estimador reduce internamente toda foto a 1024 px de lado mayor, así que enviar
 > 1024 es *equivalente* a enviar la original. Pero después recorta al animal y reescala (pose a 640 px, CNN a 384×384):
 > si se achica a 640 o 384 *antes* de recortar, un animal que está lejos queda con muy pocos píxeles y se pierde
 > precisión. 1024 es el mínimo seguro.
+
+> **Decisión abierta: JPEG o PNG.** Achicar a 1024 px es *exactamente* equivalente a lo que hace el módulo (con PNG la
+> API da el mismo peso que el módulo, diferencia 0,0 %, verificado). Lo que cambia el resultado es la **compresión
+> JPEG**: sobre ~30 fotos reales movió el peso estimado ~2,5 % en promedio y hasta ~15 % en algunas (p. ej. 112 → 129 kg),
+> y no mejora subiendo la calidad (q85 ≈ q95). Es sensibilidad del propio modelo a cambios imperceptibles (el recorte
+> depende de los keypoints, que se mueven un poco), no un defecto del transporte; el entrenamiento usó JPEG q93, así que
+> ninguna de las dos variantes es "la verdadera". Compromiso:
+>
+> | Formato | Peso por foto | Red vs. original (~4,5 MB) | Reproduce el módulo |
+> |---|---|---|---|
+> | JPEG q90 (default) | ~270 KB | −94 % | ±2,5 % típico, hasta ~15 % |
+> | PNG | ~1,3 MB | −71 % | exacto |
+>
+> El cliente de ejemplo soporta ambos: `python cliente/enviar_foto.py foto.jpg --formato png`. Conviene que el equipo
+> decida cuál usa la app; esta variabilidad es otro argumento a favor de reentrenar y de medir la repetibilidad del modelo.
 
 Respuesta `200`:
 
@@ -78,7 +93,7 @@ Errores:
 |---|---|
 | 400 | el archivo llegó vacío |
 | 413 | pesa más de 5 MB (`MAX_MB`): probablemente no se achicó |
-| 415 | no es una imagen válida, o no es JPEG/PNG |
+| 415 | no es una imagen válida, o no es JPEG/PNG (los JPEG "MPO" de algunos celulares se aceptan) |
 | 422 | lado mayor menor a 640 px, o falta el campo `foto` |
 | 500 | falla interna al procesar |
 
@@ -110,7 +125,10 @@ python -m unittest discover -s API_estimacion/tests -t API_estimacion
 
 # la API con foto achicada vs. el módulo con la foto original (necesita la API corriendo y el entorno de estimador/)
 python API_estimacion/tests/comparar_con_modulo.py foto1.jpg foto2.jpg --url http://localhost:8000
+python API_estimacion/tests/comparar_con_modulo.py foto1.jpg foto2.jpg --formato png   # debe dar diferencia 0,0 %
 ```
+
+Tamaño de la imagen Docker: ~2,6 GB (torch + ultralytics + OpenCV; es el costo de este stack en CPU).
 
 ## Decisiones de diseño
 
