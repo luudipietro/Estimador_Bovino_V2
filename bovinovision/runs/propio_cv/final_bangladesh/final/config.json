@@ -1,0 +1,15 @@
+{
+  "version": "2026-10-26 / fine-tuning sobre dataset propio v1 (141 animales, bangladesh)",
+  "archivo_pose": "pose9.pt",
+  "archivo_cnn": "peso_convnext_propio.pt",
+  "archivo_detector": "detector_coco.pt",
+  "backbone": "convnext_tiny",
+  "tam": 384,
+  "rango_entrenamiento_kg": [
+    292.0,
+    485.0
+  ],
+  "cv_mape_oof": null,
+  "cv_mape_mediana": null,
+  "nota": "Entrenado con 141 hembras de 292-485 kg de UN establecimiento. Fuera de ese rango no es confiable."
+}
