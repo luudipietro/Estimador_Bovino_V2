@@ -118,8 +118,11 @@ async def lifespan(app: FastAPI):
 - `infraestructura/ml/` envuelve `estimador.EstimadorPeso` e implementa el puerto `ModeloPeso`.
 - Se carga **una sola vez** en el `lifespan`, **antes de aceptar tráfico**, y queda en `app.state.contenedor`. Si la
   verificación de hashes o la carga fallan, la app **no arranca**: un servicio que acepta pedidos sin modelo solo los
-  fallaría después. Durante la carga (del orden de un minuto con varias instancias en CPU) el puerto todavía no
-  responde; un healthcheck necesita un `start_period` acorde. Por eso `/salud` no tiene un estado "cargando".
+  fallaría después. Durante la carga el puerto todavía no responde; un healthcheck necesita un `start_period` acorde.
+  Por eso `/salud` no tiene un estado "cargando". Tiempo medido con los pesos de v1 en CPU, en la máquina de
+  desarrollo: 15,5 s con 1 instancia y 13,8 s con 4 (procesos nuevos, disco en caché) y 26 s la primera vez tras
+  descargar los pesos. En el servidor de homologación hay que volver a medirlo
+  (`pytest -m modelo tests/integracion/test_arranque_real.py -s`).
 - La inferencia corre en hilos (`anyio.to_thread`), una instancia del modelo por hilo (ver más abajo). Las `N`
   instancias se cargan **todas** al arrancar, y los workers se lanzan recién cuando terminan.
 - Al arrancar se verifican los SHA-256 de los `.pt` (los de `descargar_modelos.py` / `SHA256SUMS.txt`). Si no
