@@ -95,23 +95,33 @@ async def solicitar_estimacion(
     return TrabajoAceptado.model_validate(trabajo)
 ```
 
-**Arranque:** `lifespan`, hashes verificados y carga única.
+**Arranque:** `lifespan`, hashes verificados y modelo cargado **antes de aceptar tráfico**. Si algo falla, la app no
+arranca (el proceso sale con error). Es un resumen de `api/main.py`:
 ```python
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    cfg = Configuracion()
-    verificar_hashes_modelos(cfg.carpeta_modelos)          # si no coinciden, no arranca
-    app.state.modelo = AdaptadorModelo(cfg.carpeta_modelos, limite=cfg.hilos_inferencia)
-    yield
+    await to_thread.run_sync(verificar_hashes_modelos, cfg.carpeta_modelos)   # si no coinciden, no arranca
+    ficha = cargar_ficha_modelo(cfg.carpeta_modelos)                          # versión y rango (R-20, R-23)
+    await adaptador.cargar()                      # las N instancias; si una falla, no arranca
+    async with httpx.AsyncClient() as cliente, anyio.create_task_group() as grupo:
+        grupo.start_soon(ejecutor.correr)         # los workers, recién con el modelo cargado
+        grupo.start_soon(barrer_periodicamente, ...)
+        app.state.contenedor = Contenedor(...)
+        try:
+            yield
+        finally:
+            grupo.cancel_scope.cancel()           # apagado ordenado
 ```
 
 ## Integración del modelo
 
 - `infraestructura/ml/` envuelve `estimador.EstimadorPeso` e implementa el puerto `ModeloPeso`.
-- Se carga **una sola vez** en el `lifespan` y se guarda en `app.state`. `/salud` responde 503 hasta que esté listo.
+- Se carga **una sola vez** en el `lifespan`, **antes de aceptar tráfico**, y queda en `app.state.contenedor`. Si la
+  verificación de hashes o la carga fallan, la app **no arranca**: un servicio que acepta pedidos sin modelo solo los
+  fallaría después. Durante la carga (del orden de un minuto con varias instancias en CPU) el puerto todavía no
+  responde; un healthcheck necesita un `start_period` acorde. Por eso `/salud` no tiene un estado "cargando".
 - La inferencia corre en hilos (`anyio.to_thread`), una instancia del modelo por hilo (ver más abajo). Las `N`
-  instancias se cargan **todas** al arrancar; hasta que terminan, el adaptador expone `cargado = False` y `/salud`
-  responde 503.
+  instancias se cargan **todas** al arrancar, y los workers se lanzan recién cuando terminan.
 - Al arrancar se verifican los SHA-256 de los `.pt` (los de `descargar_modelos.py` / `SHA256SUMS.txt`). Si no
   coinciden, la app **no arranca**.
 - El rango de validez y la versión se leen de `config.json`.

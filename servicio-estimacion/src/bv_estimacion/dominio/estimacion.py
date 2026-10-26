@@ -48,6 +48,8 @@ class ResultadoEstimacion:
     motivos: tuple[MotivoNoSe, ...]
     version: VersionModelo  # R-23
     advertencias: tuple[str, ...] = ()
+    # El detalle de cada foto, en el orden del pedido: el contrato lo devuelve en `imagenes[]`.
+    fotos: tuple[ResultadoFoto, ...] = ()
 
     def __post_init__(self) -> None:
         _validar_coherencia(self.peso_kg, self.confiable, self.motivos)
@@ -77,15 +79,18 @@ def agregar_resultados(
             regla="R-22",
         )
 
+    detalle = tuple(fotos)
     confiables = [f.peso_kg for f in fotos if f.confiable and f.peso_kg is not None]
     if not confiables:
         motivos = tuple(sorted({m for f in fotos for m in f.motivos}))
-        return ResultadoEstimacion(_mediana_o_none(fotos), False, motivos, version, advertencias)
+        return ResultadoEstimacion(_mediana_o_none(fotos), False, motivos, version, advertencias, detalle)
 
     peso = statistics.median(confiables)
     if not version.en_rango(peso):
-        return ResultadoEstimacion(_redondear(peso), False, (MotivoNoSe.FUERA_DE_RANGO,), version, advertencias)
-    return ResultadoEstimacion(_redondear(peso), True, (), version, advertencias)
+        return ResultadoEstimacion(
+            _redondear(peso), False, (MotivoNoSe.FUERA_DE_RANGO,), version, advertencias, detalle
+        )
+    return ResultadoEstimacion(_redondear(peso), True, (), version, advertencias, detalle)
 
 
 def huella_de_imagenes(hashes_sha256: Sequence[str]) -> str:
