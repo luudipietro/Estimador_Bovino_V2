@@ -1,0 +1,16 @@
+{
+  "version": "2026-10-26 / ajustado con dataset propio v1 (141 hembras de 292-485 kg, un establecimiento)",
+  "fecha_entrenamiento": "2026-10-26",
+  "archivo_pose": "pose9.pt",
+  "archivo_cnn": "peso_convnext_propio.pt",
+  "archivo_detector": "detector_coco.pt",
+  "backbone": "convnext_tiny",
+  "tam": 384,
+  "rango_entrenamiento_kg": [
+    292,
+    485
+  ],
+  "mape_cv_por_animal": 7.2,
+  "mape_referencia_mediana": 8.3,
+  "nota": "Validacion cruzada de 5 folds por animal sobre 141 animales: error 7,2 % (3 semillas, +-0,07) contra 8,3 % de predecir siempre la mediana; mejora de 1,2 puntos (IC95 +0,4 a +1,9). Solo hembras de 292-485 kg de un establecimiento: fuera de ese rango NO es confiable (R-20). Partio del modelo de Bangladesh (modelos/)."
+}

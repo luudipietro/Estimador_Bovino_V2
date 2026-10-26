@@ -7,6 +7,12 @@ datasets_externos/
 modelo-peso/data/
 modelo-peso/etiquetado/
 bovinovision/data/
+# Dataset propio (campo 8/10 y 22/10): las fotos NO se versionan; los CSV y el README SÍ (son la lectura de las balanzas)
+dataset_propio/*pesos/
+dataset_propio/*vacas/
+dataset_propio/curado/
+dataset_propio
+dataset_prueba/
 
 # ==========================================================================
 #  Modelos entrenados
@@ -65,3 +71,7 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
+# Fotos de los sets de demo (Bangladesh y del establecimiento): se regeneran con bovinovision/53_armar_demos.py
+demo/*/*.jpg
+# API propia de Luciano (no se sube; la oficial es servicio-estimacion/ de Maximo)
+API_estimacion/
