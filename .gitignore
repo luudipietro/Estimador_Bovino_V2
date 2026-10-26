@@ -75,3 +75,7 @@ desktop.ini
 demo/*/*.jpg
 # API propia de Luciano (no se sube; la oficial es servicio-estimacion/ de Maximo)
 API_estimacion/
+
+# Secretos y configuración local del servicio (el orden importa: la excepción va después)
+.env*
+!.env.example
