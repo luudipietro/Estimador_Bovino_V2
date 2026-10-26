@@ -17,6 +17,7 @@ dependencies = [
     "httpx",
     "pillow",
     "pillow-heif",
+    "numpy",
 ]
 
 [dependency-groups]
